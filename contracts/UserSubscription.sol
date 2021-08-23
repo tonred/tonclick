@@ -11,7 +11,6 @@ contract UserSubscription is SafeGasExecution {
 
 
     bool _isAutoRenew;
-    uint32 _period;
     uint32 _finishTime;
 
 
@@ -29,9 +28,8 @@ contract UserSubscription is SafeGasExecution {
      * CONSTRUCTOR *
      ***************/
 
-    constructor(uint32 period, bool isAutoRenew) public onlySubscriptionPlan SafeGasExecution(Balances.USER_SUBSCRIPTION_BALANCE) {
+    constructor(bool isAutoRenew) public onlySubscriptionPlan SafeGasExecution(Balances.USER_SUBSCRIPTION_BALANCE) {
         tvm.accept();
-        _period = period;
         _isAutoRenew = isAutoRenew;
     }
 
@@ -40,14 +38,14 @@ contract UserSubscription is SafeGasExecution {
      * GETTERS *
      ***********/
 
-    function isActive(uint32 extendPeriod) public pure returns (bool) {
-        return now <= _finishTime;
-    }
-
 
     /***********
      * METHODS *
      ***********/
+
+    function isActive() public pure returns (bool) {
+        return now <= _finishTime;
+    }
 
     function extend(uint32 extendDuration) public onlySubscriptionPlan safeGasModifier {
         if (isActive()) {
