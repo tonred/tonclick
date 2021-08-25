@@ -1,10 +1,9 @@
 pragma ton-solidity >= 0.39.0;
 
 import "./utils/SafeGasExecution.sol";
-import "./utils/ITIP3Manager.sol";
 
 
-contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
+contract SubscriptionPlan is SafeGasExecution {
 
     uint64 static _nonce;
     address static _owner;
@@ -13,7 +12,7 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
 
     mapping(address => uint128) _tip3Prices;
     uint32 _duration;
-    uint32 _maxPeriods;  // may be time limit (finish time)
+//    uint32 _maxPeriods;  // may be time limit (finish time)
     uint128 _limitCount;
     string _description;
     string _termUrl;
@@ -40,34 +39,19 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
     constructor(
         mapping(address => uint128) _tip3Prices,
         uint32 _duration,
-        uint32 _maxPeriods,
         uint128 _limitCount,
         string _description,
         string _termUrl,
         TvmCell _userSubscriptionCode
-    ) public onlyService SafeGasExecution(Balances.SUBSCRIPTION_PLAN_BALANCE) {
-        tvm.accept();
+    ) public onlyRoot {
         _tip3Prices = tip3Prices;
         _duration = duration;
-        _maxPeriods = maxPeriods;
         _limitCount = limitCount;
         _description = description;
         _termUrl = termUrl;
         _userSubscriptionCode = userSubscriptionCode;
         _active = true;
-        _deployTip3Wallets();
-        // todo send message to Service about creation (or send to Root ???)
-    }
-
-    function _deployTip3Wallets() private {
-        optional(address, uint128) pair = _tip3Prices.min();
-        while (pair.hasValue()) {
-            (address root, uint128 price) = pair.get();
-            if (price > 0) {
-                _addTip3Wallet(root);
-            }
-            pair = _tip3Prices.next(root);
-        }
+        keepBalances(Balances.SUBSCRIPTION_PLAN_BALANCE);
     }
 
 
@@ -88,44 +72,58 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
         _active = false;
     }
 
-//    function changeTip3Prices(mapping(address => uint128) tip3Prices) public onlyOwner safeGasModifier {
-//        _tip3Prices = tip3Prices;
-//    }
 
-    function buildSubscriptionPayload(bool isAutoRenew) public returns (TvmCell) {
-        TvmBuilder builder;
-        builder.store(isAutoRenew);
-        return builder.toCell();
+    function changeTip3Prices(mapping(address => uint128) tip3Prices) public onlyOwner safeGasModifier {
+        // todo require gas
+        _reserve(0);
+        Service(_service).addTip3Wallets{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(tip3Prices);
     }
 
-    function _onTip3TokensReceived(
+    function addTip3WalletsCallback() public onlyOwner {
+        _reserve(0);
+        _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+    }
+
+    function canSubscribe() public view returns (bool) {
+        return _active && _usersCount < _limitCount;
+    }
+
+    function isRightTip3(address root, uint128 amount) public view returns (bool) {
+        return _tip3Prices.exists(root) && amount >= _tip3Prices[root];
+    }
+
+    function subscribe(
         address tip3Root,
         uint128 tip3Amount,
         uint256 senderPubkey,
         address senderAddress,
         address senderWallet,
-        TvmCell payload
-    ) private override {
+        bool isAutoRenew
+    ) public onlyService {
         _reserve(0);
-        if (!canSubscribe() || !_tip3Prices.exists(tip3Root) || (tip3Amount < _tip3Prices[tip3Root])) {
-            _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
-            senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
-            return;
+        if (canSubscribe() && !isRightTip3(tip3Root, tip3Amount)) {
+            uint128 tip3Price = _tip3Prices[tip3Root];
+            uint128 extendPeriods = tip3Amount / tip3Price;
+            uint32 extendDuration = extendPeriods * _duration;
+            _subscribe(isAutoRenew, extendDuration, user, pubkey);
+            bool success = true;
+            uint128 changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
+        } else {
+            bool success = false;
+            uint128 changeTip3Amount = tip3Amount;
         }
-        bool isAutoRenew = payload.toSlice().decodeFunctionParams(buildSubscriptionPayload);
-        uint128 tip3Price = _tip3Prices[tip3Root];
-        uint128 extendPeriods = tip3Amount / tip3Price;
-        uint32 extendDuration = extendPeriods * _duration;
-        _subscribe(isAutoRenew, extendDuration, senderAddress, senderPubkey);
-
-        uint128 changeAmount = tip3Amount - extendPeriods * tip3Price;
-        _transferTip3Tokens(tip3Root, senderWallet, changeAmount);
-        senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
-        // todo transfer TIP3 to Root (problem...)
-    }
-
-    function canSubscribe() public view returns (bool) {
-        return _active && _usersCount < _limitCount;
+        Service(_service)
+            .subscribeCallback {
+                value: 0,
+                flag: MsgFlag.ALL_NOT_RESERVED
+            }(
+                _nonce,
+                tip3Root,
+                senderWallet,
+                senderAddress,
+                success,
+                changeTip3Amount
+            );
     }
 
     function _subscribe(bool isAutoRenew, uint32 extendDuration, address user, uint256 pubkey) private {

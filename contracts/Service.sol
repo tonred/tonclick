@@ -4,11 +4,12 @@ import "./utils/SafeGasExecution.sol";
 import "./libraries/Errors.sol";
 import "./libraries/Fees.sol";
 import "./interfaces/ISubscriptionsRoot.sol";
+import "./utils/ITIP3Manager.sol";
 
 import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
 
-contract Service is SafeGasExecution {
+contract Service is SafeGasExecution, ITIP3Manager {
 
     uint32 static _nonce;
     address static _root;
@@ -20,8 +21,7 @@ contract Service is SafeGasExecution {
 
     uint32 _subscriptionPlanNonce;
     address[] _subscriptionPlans;
-    mapping(address /*root*/ => address /*wallet*/) _wallets;
-    mapping(address => uint128) _virtualBalances;
+    mapping(address /*root*/ => uint128 /*balance*/) _virtualBalances;
 
 
     /*************
@@ -47,7 +47,7 @@ contract Service is SafeGasExecution {
         _owner = owner;
         _description = description;
         _url = url;
-        keepBalance(address(this).balance);
+        keepBalance(Balances.SERVICE_BALANCE);
     }
 
 
@@ -67,8 +67,12 @@ contract Service is SafeGasExecution {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _virtualBalances;
     }
 
-    function getWallets() public responsible returns (mapping(address => address)){
-        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _wallets;
+    function getOneBalance(address root) public responsible returns (uint128) {
+        if (_virtualBalances.exists(root)) {
+            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _virtualBalances[root];
+        } else {
+            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} 0;
+        }
     }
 
 
@@ -77,34 +81,136 @@ contract Service is SafeGasExecution {
      ***********/
 
     function createSubscriptionPlan(
-        mapping(address => uint128) prices
-    ) public onlyOwner safeGasModifier {
-        require(msg.value >= Fees.CREATE_SUBSCRIPTION_PLAN_VALUE, 999);
-        require(!prices.empty(), 999);
+        mapping(address => uint128) _tip3Prices,
+        uint32 _duration,
+        uint128 _limitCount,
+        string _description,
+        string _termUrl
+    ) public onlyOwner {
         _reserve(0);
-
-        optional(address, uint128) price = prices.min();
-        while (price.hasValue()) {
-            (address token, uint128 priceValue) = price.get();
-            if (!_wallets.exists(token)){
-//                _createWallets(token);
-                _wallets[token] = address(0);
-                _virtualBalances[token] = 0;
-            }
-            price = prices.next(token);
-        }
-        ISubscriptionsRoot(_root).createSubscriptionPlan(
-            _nonce,
-            _subscriptionPlanNonce
-//            prices
-            /*...*/
-        );
-        _subscriptionPlanNonce++;
+        uint64 subscriptionPlanNonce = _subscriptionPlanNonceIndex++;
+        Root(_root)
+            .createSubscriptionPlan {
+                value: 0,
+                flag: MsgFlags.ALL_NOT_RESERVED
+            }(
+                _nonce,
+                subscriptionPlanNonce,
+                _owner,
+                address(this),
+                _tip3Prices,
+                _duration,
+                _limitCount,
+                _description,
+                _termUrl
+            );
     }
 
-    function onSubscriptionPlanCreated(/*...*/) public {
-        // todo check sender (is it possible ?!)
-        _subscriptionPlans.push(msg.sender);
+    function onSubscriptionPlanCreated(
+        address subscriptionPlan,
+        mapping(address => uint128) tip3Prices
+    ) public {
+        _reverse(0);
+        require(msg.sender == _root, Errors.IS_NOT_ROOT);
+        _deployTip3Wallets(tip3Prices);
+        _subscriptionPlans.push(subscriptionPlan);
+        _owner.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED, bounce: false});
+    }
+
+    function isSubscriptionPlan(address sender, uint64 subscriptionPlanNonce) public returns (bool) {
+        return sender == _subscriptionPlans[subscriptionPlanNonce];
+    }
+
+    function _deployTip3Wallets(mapping(address => uint128) tip3Prices) private {
+        optional(address, uint128) pair = tip3Prices.min();
+        while (pair.hasValue()) {
+            (address root, uint128 price) = pair.get();
+            _addTip3Wallet(root);
+            pair = _tip3Prices.next(root);
+        }
+    }
+
+    function addTip3Wallets(mapping(address => uint128) tip3Prices) public {
+        _reverse(0);
+        require(isSubscriptionPlan(msg.sender, subscriptionPlanNonce), Errors.IS_NOT_SUBSCRIPTION_PLAN);
+        _deployTip3Wallets(tip3Prices);
+        SubscriptionPlans(msg.sender).addTip3WalletsCallback{value: 0, flag: MsgFlags.ALL_NOT_RESERVED}();
+    }
+
+    function _onTip3TokensReceived(
+        address tip3Root,
+        uint128 tip3Amount,
+        uint256 senderPubkey,
+        address senderAddress,
+        address senderWallet,
+        TvmCell payload
+    ) private override {
+        _reserve(0);
+        // todo require gas
+        (uint64 subscriptionPlanNonce, bool isAutoRenew) = payload.toSlice().decodeFunctionParams(buildSubscriptionPayload);
+        if (subscriptionPlanNonce >= _subscriptionPlanNonceIndex) {  // wrong nonce
+            _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
+            senderAddress.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED});
+            return;
+        }
+
+        _virtualBalances[tip3Root] += tip3Amount;
+        SubscriptionPlan subscriptionPlan = SubscriptionPlan(_subscriptionPlans[subscriptionPlanNonce]);
+        subscriptionPlan.subscribe{
+            value: 0,
+            flag: MsgFlags.ALL_NOT_RESERVED
+        }(tip3Root, tip3Amount, senderPubkey, senderAddress, senderWallet, isAutoRenew);
+    }
+
+    function buildSubscriptionPayload(uint64 subscriptionPlanNonce, bool isAutoRenew) public returns (TvmCell) {
+        TvmBuilder builder;
+        builder.store(planNonce, isAutoRenew);
+        return builder.toCell();
+    }
+
+    function subscribeCallback(
+        uint64 subscriptionPlanNonce,
+        address tip3Root,
+        address senderWallet,
+        address senderAddress,
+        bool success,
+        uint128 changeTip3Amount
+    ) public {
+        require(isSubscriptionPlan(msg.sender, subscriptionPlanNonce), Errors.IS_NOT_SUBSCRIPTION_PLAN);
+        _reserve(0);
+        _virtualBalances[tip3Root] -= changeTip3Amount;
+        _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
+        senderAddress.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED});
+    }
+
+    function withdrawalTip3Income(address tip3Root) public onlyOwner {
+        // todo min gas 2
+        _reserve(0);
+        uint128 tip3Amount = getTip3Balance(root);
+        require(tip3Amount > 0, Errors.SERVICE_ZERO_TIP3_TOKENS);
+        TvmBuilder builder;
+        builder.store(tip3Root, tip3Amount);
+        TvmCell payload = builder.toCell();
+        Root(_root).getWithdrawalParams{value: 0, flag: MsgFlags.ALL_NOT_RESERVED}(tip3Root, payload);
+    }
+
+    function getWithdrawalParamsCallback(
+        uint128 numerator,
+        uint128 denominator,
+        TvmCell payload
+    ) public onlyRoot {
+        _reserve(0);
+        (address tip3Root, uint128 tip3Amount) = payload.toSlice().decode();
+        if (_virtualBalances[tip3Root] < tip3Amount) {  // owner tries to make double transfer of income
+            _owner.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED, bounce: false});
+            tvm.exit();
+        }
+        uint128 feeTip3Amount = math.muldiv(tip3Amount, numerator, denominator);
+        uint128 incomeTip3Amount = tip3Amount - feeTip3Amount;
+        _transferTip3TokensWithDeploy(tip3Root, _root, feeTip3Amount);
+        _transferTip3TokensWithDeploy(tip3Root, _owner, incomeTip3Amount);
+        _virtualBalances[tip3Root] -= tip3Amount;
+        _owner.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED, bounce: false});
     }
 
 }
