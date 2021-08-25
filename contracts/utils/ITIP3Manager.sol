@@ -33,7 +33,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         IRootTokenContract(tip3_root)
             .deployEmptyWallet {
                 value: DEPLOY_EMPTY_WALLET_VALUE,
-                flag: MsgFlags.SENDER_PAYS_FEES
+                flag: MsgFlag.SENDER_PAYS_FEES
             }(
                 DEPLOY_EMPTY_WALLET_GRAMS,  // deploy_grams
                 0,                          // wallet_public_key
@@ -43,7 +43,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         IRootTokenContract(tip3_root)
             .sendExpectedWalletAddress {
                 value: SEND_EXPECTED_WALLET_VALUE,
-                flag: MsgFlags.SENDER_PAYS_FEES
+                flag: MsgFlag.SENDER_PAYS_FEES
             }(
                 0,              // wallet_public_key_
                 address(this),  // owner_address_
@@ -97,7 +97,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         require(token_wallet == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
 
         _onTip3TokensReceived(token_root, tokens_amount, sender_address, sender_wallet);
-        sender_address.transfer({value: 0, flag: MsgFlags.REMAINING_GAS, bounce: false});
+        sender_address.transfer({value: 0, flag: MsgFlag.REMAINING_GAS, bounce: false});
     }
 
     function _onTip3TokensReceived(
@@ -115,7 +115,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         ITONTokenWallet(_tip3_wallet)
             .transfer {
                 value: TRANSFER_VALUE,
-                flag: MsgFlags.SENDER_PAYS_FEES
+                flag: MsgFlag.SENDER_PAYS_FEES
             }(
                 destination,   // to
                 value,         // tokens

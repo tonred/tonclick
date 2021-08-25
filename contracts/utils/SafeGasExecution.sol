@@ -1,19 +1,19 @@
 pragma ton-solidity >= 0.39.0;
 
+import "../../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
-contract SafeGasExecution {
+abstract contract SafeGasExecution {
 
     uint128 __keepBalance;
 
     modifier safeGasModifier() {
         _reserve(0);
         _;
-        msg.sender.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED});
+        msg.sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
-    constructor(address keepBalance) public onlyRoot {
-        tvm.accept();
-        __keepBalance = keepBalance;
+    function keepBalance(uint128 value) internal {
+        __keepBalance = value;
     }
 
     function _reserve(uint128 additional) internal {

@@ -1,0 +1,35 @@
+{
+  "name": "tonclick",
+  "version": "1.0.0",
+  "description": "Free TON Recurring Payments System ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tonred/tonclick.git"
+  },
+  "keywords": [
+    "solidity",
+    "smartcontract",
+    "freeton",
+    "ton",
+    "paymants"
+  ],
+  "author": "TONRED",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tonred/tonclick/issues"
+  },
+  "homepage": "https://github.com/tonred/tonclick#readme",
+  "dependencies": {
+    "@broxus/contracts": "git://github.com/pavelkhachatrian/ton-contracts",
+    "bignumber.js": "^9.0.1",
+    "chai": "^4.3.4",
+    "locklift": "^1.4.4",
+    "mocha": "^9.0.3",
+    "mocha-logger": "^1.0.7",
+    "ton-eth-bridge-token-contracts": "git://github.com/broxus/ton-eth-bridge-token-contracts#74905260499d79cf7cb0d89a6eb572176fc1fcd5"
+  }
+}

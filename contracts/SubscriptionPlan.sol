@@ -109,7 +109,7 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
         _reserve(0);
         if (!canSubscribe() || !_tip3Prices.exists(tip3Root) || (tip3Amount < _tip3Prices[tip3Root])) {
             _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
-            senderAddress.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED});
+            senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
             return;
         }
         bool isAutoRenew = payload.toSlice().decodeFunctionParams(buildSubscriptionPayload);
@@ -120,7 +120,7 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
 
         uint128 changeAmount = tip3Amount - extendPeriods * tip3Price;
         _transferTip3Tokens(tip3Root, senderWallet, changeAmount);
-        senderAddress.transfer({value: 0, flag: MsgFlags.ALL_NOT_RESERVED});
+        senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
         // todo transfer TIP3 to Root (problem...)
     }
 
@@ -133,7 +133,7 @@ contract SubscriptionPlan is SafeGasExecution, ITIP3Manager {
         UserSubscription userSubscription = new UserSubscription{
             stateInit : stateInit,
             value : Balances.USER_SUBSCRIPTION_BALANCE,
-            flag: MsgFlags.SENDER_PAYS_FEES,
+            flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: true
         }(isAutoRenew);
         _totalUsersCount++;  // if user already have a subscription, this counter will be decreased in `onBounce` step
