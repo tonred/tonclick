@@ -16,7 +16,8 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
     uint128 constant DEPLOY_EMPTY_WALLET_VALUE = 0.2 ton;
     uint128 constant DEPLOY_EMPTY_WALLET_GRAMS = 0.1 ton;
     uint128 constant SEND_EXPECTED_WALLET_VALUE = 0.1 ton;
-    uint128 constant TRANSFER_VALUE = 0.2 ton;
+    uint128 constant TRANSFER_FEE_VALUE = 0.2 ton;
+    uint128 constant TIP3_WALLET_DEPLOY_FEE_VALUE = 0.1 ton;
 
     mapping(address => address) _tip3_wallets;
 
@@ -25,8 +26,12 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         tvm.accept();
     }
 
+    function isTip3WalletExists(address tip3_root) public returns (bool) {
+        return _tip3_wallets.exists(tip3_root);
+    }
+
     function _addTip3Wallet(address tip3_root) internal {
-        if (_tip3_wallets.exists(tip3_root)) {
+        if (isTip3WalletExists(tip3_root)) {
             return;
         }
         _tip3_wallets[tip3_root] = address.makeAddrNone();
@@ -61,7 +66,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         uint256 wallet_public_key,
         address owner_address
     ) override public {
-        require(_tip3_wallets.exists(msg.sender), Errors.IS_NOT_TIP3_ROOT);
+        require(isTip3WalletExists(msg.sender), Errors.IS_NOT_TIP3_ROOT);
         require(wallet_public_key == 0, Errors.IS_NOT_TIP3_OWNER);
         require(owner_address == address(this), Errors.IS_NOT_TIP3_OWNER);
 
@@ -109,20 +114,39 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         TvmCell payload
     ) virtual internal;
 
-    function _transferTip3Tokens(address tip3_root, address destination, uint128 value) internal view {
-        address tip3_wallet = _tip3_wallet[tip3_root];
+    function _transferTip3Tokens(address root, address destination, uint128 value) internal view {
+        address wallet = _tip3_wallet[root];
         TvmCell empty;
-        ITONTokenWallet(_tip3_wallet)
+        ITONTokenWallet(wallet)
             .transfer {
-                value: TRANSFER_VALUE,
+                value: TRANSFER_FEE_VALUE,
                 flag: MsgFlags.SENDER_PAYS_FEES
             }(
-                destination,   // to
-                value,         // tokens
-                0,             // grams,
-                tip3_wallet,   // send_gas_to,
-                true,          // notify_receiver
-                empty          // payload
+                destination,  // to
+                value,        // tokens
+                0,            // grams,
+                wallet,       // send_gas_to,
+                true,         // notify_receiver
+                empty         // payload
+            );
+    }
+
+    function _transferTip3TokensWithDeploy(address root, address recipient_address, uint128 value) internal view {
+        address wallet = _tip3_wallet[root];
+        TvmCell empty;
+        ITONTokenWallet(wallet)
+            .transferToRecipient {
+                value: TRANSFER_FEE_VALUE + TIP3_WALLET_DEPLOY_FEE_VALUE,
+                flag: MsgFlags.SENDER_PAYS_FEES
+            }(
+                0,                             // recipient_public_key
+                recipient_address,             // recipient_address
+                value,                         // tokens
+                TIP3_WALLET_DEPLOY_FEE_VALUE,  // deploy_grams
+                0,                             // transfer_grams
+                recipient_address,             // send_gas_to
+                true,                          // notify_receiver
+                payload                        // payload
             );
     }
 

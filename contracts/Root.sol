@@ -3,13 +3,16 @@ pragma ton-solidity >= 0.39.0;
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
 import "./utils/SafeGasExecution.sol";
+import "./utils/ITIP3Manager.sol";
 
 
-contract Root is SafeGasExecution {
+contract Root is SafeGasExecution, ITIP3Manager {
 
     address _owner;
-
     uint64 _serviceNonceIndex;
+    uint128 _feeNumerator = Constants.DEFAULT_ROOT_FEE_NUMERATOR;
+    uint128 _feeDenominator = Constants.DEFAULT_ROOT_FEE_DENOMINATOR;
+
     TvmCell _serviceCode;
     TvmCell _subscriptionPlanCode;
     TvmCell _userSubscriptionCode;
@@ -49,7 +52,7 @@ contract Root is SafeGasExecution {
 
     function createService(address owner, string description, string url) public safeGasModifier {
         TvmCell stateInit = _buildServiceStateInit(_serviceNonceIndex++);
-        Service service = new Service{
+        Service service = new Service {
             stateInit : stateInit,
             value : Balances.SERVICE_BALANCE,
             flag: MsgFlags.SENDER_PAYS_FEES,
@@ -68,28 +71,45 @@ contract Root is SafeGasExecution {
     }
 
     function createSubscriptionPlan(
-        uint64 serviceNonce,
+        uint64 serviceNonce,  // todo use TvmCell
         uint64 subscriptionPlanNonce,
-        ...
-    ) public safeGasModifier {
+        address owner,
+        address service,
+        mapping(address => uint128) tip3Prices,  // second TvmCell
+        uint32 duration,
+        uint128 limitCount,
+        string description,
+        string termUrl
+    ) public {
+        _reserve(0);
         TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);
         address serviceExpectedAddress = _calcAddress(stateInit);
-        require(msg.sender == serviceExpectedAddress, 6969);
+        require(msg.sender == serviceExpectedAddress, 6969);  // todo not service
 
-        TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce);
-        SubscriptionPlan subscriptionPlan = new SubscriptionPlan{
+        TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
+        SubscriptionPlan subscriptionPlan = new SubscriptionPlan {
             stateInit : subscriptionPlanStateInit,
             value : Balances.SUBSCRIPTION_PLAN_BALANCE,
             flag: MsgFlags.SENDER_PAYS_FEES,
             bounce: false
-        }(..., _userSubscriptionCode);
+        }(tip3Prices, duration, limitCount, description, termUrl, _userSubscriptionCode);
+        Service(service)
+            .onSubscriptionPlanCreated {
+                value: 0,
+                flag: MsgFlags.ALL_NOT_RESERVED,
+            }(
+                address(subscriptionPlan),
+                tip3Prices
+            );
     }
 
-    function _buildSubscriptionPlanStateInit(uint64 nonce) private view returns (TvmCell) {
+    function _buildSubscriptionPlanStateInit(uint64 nonce, address owner, address service) private view returns (TvmCell) {
         return tvm.buildStateInit({
             contr: SubscriptionPlan,
             varInit: {
-                _nonce : nonce
+                _nonce : nonce,
+                _owner: owner,
+                _service: service
             },
             code : _subscriptionPlanCode
         });
@@ -97,6 +117,29 @@ contract Root is SafeGasExecution {
 
     function _calcAddress(TvmCell stateInit) private pure returns (address) {
         return address.makeAddrStd(0, tvm.hash(stateInit));
+    }
+
+    function changeFee(uint128 numerator, uint128 denominator) public onlyOwner safeGasModifier {
+        _feeNumerator = numerator;
+        _feeDenominator = denominator;
+    }
+
+    function getWithdrawalParams(address tip3Root, TvmCell payload) public {
+        _reserve(0);
+        if (!isTip3WalletExists(tip3Root)) {
+            _addTip3Wallet(tip3Root);
+        }
+        // todo create tip3 tip3Wallet
+        Service(msg.sender)
+            .getWithdrawalParamsCallback {
+                value: 0,
+                flag: MsgFlags.ALL_NOT_RESERVED
+            }(
+                _feeNumerator,
+                _feeDenominator,
+                tip3Wallet,
+                payload
+            );
     }
 
 }
