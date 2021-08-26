@@ -3,7 +3,7 @@ setup:
 	npm install -g locklift
 
 compile:
-	export TVM_LINKER_LIB_PATH=/Users/abionics/TON/Compilation/TON-Solidity-Compiler/lib/stdlib_sol.tvm
+	export TVM_LINKER_LIB_PATH=/Users/abionics/TON/Compilation/TON-Solidity-Compiler/lib/stdlib_sol.tvm && \
 	locklift build --config locklift.config.js
 
 deploy:

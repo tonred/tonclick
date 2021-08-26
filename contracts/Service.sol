@@ -5,15 +5,17 @@ import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
 import "./interfaces/service/IServiceSubscribeCallback.sol";
+import "./libraries/Balances.sol";
 import "./libraries/Errors.sol";
 import "./libraries/Fees.sol";
 import "./utils/ITIP3Manager.sol";
+import "./utils/MinValue.sol";
 import "./utils/SafeGasExecution.sol";
 
 import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
 
-contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, IServiceSubscribeCallback {
+contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue, SafeGasExecution, ITIP3Manager {
 
     uint32 static _nonce;
     address static _root;
@@ -39,6 +41,12 @@ contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, ISer
 
     modifier onlyOwner() {
         require(msg.sender == _owner, Errors.IS_NOT_OWNER);
+        _;
+    }
+
+    modifier onlySubscriptionPlan(uint32 subscriptionPlanNonce) {
+        require(subscriptionPlanNonce < _subscriptionPlanNonce, Errors.IS_NOT_SUBSCRIPTION_PLAN);
+        require(msg.sender == _subscriptionPlans[subscriptionPlanNonce], Errors.IS_NOT_SUBSCRIPTION_PLAN);
         _;
     }
 
@@ -90,7 +98,7 @@ contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, ISer
         uint128 limitCount,
         string description,
         string termUrl
-    ) public onlyOwner {
+    ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
         _reserve(0);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
         IRootCreateSubscriptionPlan(_root)
@@ -113,16 +121,11 @@ contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, ISer
     function onSubscriptionPlanCreated(
         address subscriptionPlan,
         mapping(address => uint128) tip3Prices
-    ) public {
+    ) public onlyRoot {
         _reserve(0);
-        require(msg.sender == _root, Errors.IS_NOT_ROOT);
         _deployTip3Wallets(tip3Prices);
         _subscriptionPlans.push(subscriptionPlan);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
-    }
-
-    function isSubscriptionPlan(address sender, uint32 subscriptionPlanNonce) public view returns (bool) {
-        return sender == _subscriptionPlans[subscriptionPlanNonce];
     }
 
     function _deployTip3Wallets(mapping(address => uint128) tip3Prices) private {
@@ -136,9 +139,8 @@ contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, ISer
         }
     }
 
-    function addTip3Wallets(uint32 subscriptionPlanNonce, mapping(address => uint128) tip3Prices) public override {
+    function addTip3Wallets(uint32 subscriptionPlanNonce, mapping(address => uint128) tip3Prices) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
-        require(isSubscriptionPlan(msg.sender, subscriptionPlanNonce), Errors.IS_NOT_SUBSCRIPTION_PLAN);  // todo
         _deployTip3Wallets(tip3Prices);
         SubscriptionPlan(msg.sender).addTip3WalletsCallback{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}();
     }
@@ -181,16 +183,14 @@ contract Service is SafeGasExecution, ITIP3Manager, IServiceAddTip3Wallets, ISer
         address senderAddress,
         bool /*success*/,
         uint128 changeTip3Amount
-    ) public override {
-        require(isSubscriptionPlan(msg.sender, subscriptionPlanNonce), Errors.IS_NOT_SUBSCRIPTION_PLAN);
+    ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
         _virtualBalances[tip3Root] -= changeTip3Amount;
         _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
         senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
-    function withdrawalTip3Income(address tip3Root) public view onlyOwner {
-        // todo min gas 2
+    function withdrawalTip3Income(address tip3Root) public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {
         _reserve(0);
         uint128 tip3Amount = getOneBalance(tip3Root);
         require(tip3Amount > 0, Errors.SERVICE_ZERO_TIP3_TOKENS);

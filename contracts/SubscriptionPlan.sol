@@ -3,10 +3,14 @@ pragma ton-solidity >= 0.39.0;
 import "./UserSubscription.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
 import "./interfaces/service/IServiceSubscribeCallback.sol";
+import "./libraries/Balances.sol";
+import "./libraries/Fees.sol";
+import "./libraries/Errors.sol";
+import "./utils/MinValue.sol";
 import "./utils/SafeGasExecution.sol";
 
 
-contract SubscriptionPlan is SafeGasExecution {
+contract SubscriptionPlan is MinValue, SafeGasExecution {
 
     uint32 static _nonce;
     address static _owner;
@@ -87,8 +91,7 @@ contract SubscriptionPlan is SafeGasExecution {
     }
 
 
-    function changeTip3Prices(mapping(address => uint128) tip3Prices) public view onlyOwner {
-        // todo require gas
+    function changeTip3Prices(mapping(address => uint128) tip3Prices) public view onlyOwner minValue(Fees.USER_SUBSCRIPTION_CHANGE_TIP3_PRICE_VALUE) {
         _reserve(0);
         IServiceAddTip3Wallets(_service).addTip3Wallets{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(_nonce, tip3Prices);
     }
@@ -102,7 +105,7 @@ contract SubscriptionPlan is SafeGasExecution {
         return _active && _totalUsersCount < _limitCount;
     }
 
-    function isRightTip3(address root, uint128 amount) public view returns (bool) {
+    function isAcceptableTip3(address root, uint128 amount) public view returns (bool) {
         return _tip3Prices.exists(root) && amount >= _tip3Prices[root];
     }
 
@@ -117,7 +120,7 @@ contract SubscriptionPlan is SafeGasExecution {
         _reserve(0);
         bool success = false;
         uint128 changeTip3Amount = tip3Amount;
-        if (canSubscribe() && !isRightTip3(tip3Root, tip3Amount)) {
+        if (canSubscribe() && !isAcceptableTip3(tip3Root, tip3Amount)) {
             uint128 tip3Price = _tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
             uint32 extendDuration = uint32(extendPeriods * _duration);  // todo uint128 max value
@@ -153,7 +156,7 @@ contract SubscriptionPlan is SafeGasExecution {
 
     function unsubscribe() public view {
         _reserve(0);
-        address userSubscription = getUserSubscription(msg.sender, msg.pubkey());
+        address userSubscription = getUserSubscription(msg.sender, msg.pubkey());  // todo shit user-pubkey
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}();
     }
 

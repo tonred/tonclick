@@ -2,7 +2,10 @@ pragma ton-solidity >= 0.48.0;
 
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
+import "./libraries/Balances.sol";
 import "./libraries/Constants.sol";
+import "./libraries/Errors.sol";
+import "./utils/MinValue.sol";
 import "./utils/SafeGasExecution.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
@@ -12,7 +15,7 @@ import "../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
 import "../node_modules/@broxus/contracts/contracts/access/InternalOwner.sol";
 
 
-contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,  RandomNonce /*, InternalOwner*/ {
+contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGasExecution,  RandomNonce /*, InternalOwner*/ {
 
     address _owner;
     uint32 _serviceNonce;
@@ -35,9 +38,9 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,
     }
 
     modifier onlyService(uint32 serviceNonce) {
-        require(serviceNonce <= _serviceNonce, 999);  // todo
+        require(serviceNonce < _serviceNonce, Errors.IS_NOT_SERVICE);
         TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);
-        require(msg.sender == _calcAddress(serviceStateInit), 999);  // todo
+        require(msg.sender == _calcAddress(serviceStateInit), Errors.IS_NOT_SERVICE);
         _;
     }
 
@@ -50,7 +53,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,
         TvmCell serviceCode,
         TvmCell subscriptionPlanCode,
         TvmCell userSubscriptionCode
-    ) public onlyOwner {
+    ) public {
         tvm.accept();
         _owner = owner;
         _serviceCode = serviceCode;
@@ -69,7 +72,11 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,
      * METHODS *
      ***********/
 
-    function createService(address owner, string description, string url) public safeGasModifier {
+    function createService(
+        address owner,
+        string description,
+        string url
+    ) public minValue(Fees.CREATE_SERVICE_VALUE) safeGasModifier {
         TvmCell stateInit = _buildServiceStateInit(_serviceNonce++);
         new Service {
             stateInit : stateInit,
@@ -77,6 +84,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(owner, description, url);
+        // todo callback that service is created
     }
 
     function _buildServiceStateInit(uint32 nonce) private view returns (TvmCell) {
@@ -94,17 +102,13 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,
         uint32 subscriptionPlanNonce,
         address owner,
         address service,
-        mapping(address => uint128) tip3Prices,  // second TvmCell
+        mapping(address => uint128) tip3Prices,  // todo second TvmCell
         uint32 duration,
         uint128 limitCount,
         string description,
         string termUrl
-    ) public override {
+    ) public override onlyService(serviceNonce) {
         _reserve(0);
-        TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);  // todo
-        address serviceExpectedAddress = _calcAddress(serviceStateInit);
-        require(msg.sender == serviceExpectedAddress, 6969);  // todo not service
-
         TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
         SubscriptionPlan subscriptionPlan = new SubscriptionPlan {
             stateInit : subscriptionPlanStateInit,
