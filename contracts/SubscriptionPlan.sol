@@ -71,6 +71,10 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _data;
     }
 
+    function getTip3Prices() public view responsible returns (mapping(address /*root*/ => uint128 /*price*/)) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _tip3Prices;
+    }
+
 
     /***********
      * METHODS *
