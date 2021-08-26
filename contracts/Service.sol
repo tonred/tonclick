@@ -5,6 +5,7 @@ import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
 import "./interfaces/service/IServiceSubscribeCallback.sol";
+import "./structs/SubscriptionPlanData.sol";
 import "./libraries/Balances.sol";
 import "./libraries/Errors.sol";
 import "./libraries/Fees.sol";
@@ -67,15 +68,15 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      * GETTERS *
      ***********/
 
-    function getSubscriptionPlanNonce() public view responsible returns (uint32){
+    function getSubscriptionPlanNonce() public view responsible returns (uint32) {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionPlanNonce;
     }
 
-    function getSubscriptionPlans() public view responsible returns (address[]){
+    function getSubscriptionPlans() public view responsible returns (address[]) {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionPlans;
     }
 
-    function getBalances() public view responsible returns (mapping(address => uint128)){
+    function getBalances() public view responsible returns (mapping(address => uint128)) {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _virtualBalances;
     }
 
@@ -93,13 +94,15 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      ***********/
 
     function createSubscriptionPlan(
-        mapping(address => uint128) tip3Prices,
+        string title,
         uint32 duration,
-        uint128 limitCount,
+        mapping(address => uint128) tip3Prices,
         string description,
-        string termUrl
+        string termUrl,
+        uint64 limitCount
     ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
         _reserve(0);
+        SubscriptionPlanData data = SubscriptionPlanData(title, duration, tip3Prices, description, termUrl, limitCount);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
         IRootCreateSubscriptionPlan(_root)
             .createSubscriptionPlan {
@@ -110,11 +113,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
                 subscriptionPlanNonce,
                 _owner,
                 address(this),
-                tip3Prices,
-                duration,
-                limitCount,
-                description,
-                termUrl
+                data
             );
     }
 

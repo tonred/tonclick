@@ -2,6 +2,7 @@ pragma ton-solidity >= 0.48.0;
 
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
+import "./structs/SubscriptionPlanData.sol";
 import "./libraries/Balances.sol";
 import "./libraries/Constants.sol";
 import "./libraries/Errors.sol";
@@ -102,11 +103,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         uint32 subscriptionPlanNonce,
         address owner,
         address service,
-        mapping(address => uint128) tip3Prices,  // todo second TvmCell
-        uint32 duration,
-        uint128 limitCount,
-        string description,
-        string termUrl
+        SubscriptionPlanData data
     ) public override onlyService(serviceNonce) {
         _reserve(0);
         TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
@@ -115,14 +112,14 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
             value : Balances.SUBSCRIPTION_PLAN_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
-        }(tip3Prices, duration, limitCount, description, termUrl, _userSubscriptionCode);
+        }(data, _userSubscriptionCode);
         Service(service)
             .onSubscriptionPlanCreated {
                 value: 0,
                 flag: MsgFlag.ALL_NOT_RESERVED
             }(
                 address(subscriptionPlan),
-                tip3Prices
+                data.tip3Prices
             );
     }
 

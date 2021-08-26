@@ -1,5 +1,7 @@
 pragma ton-solidity >= 0.48.0;
 
+import "../../structs/SubscriptionPlanData.sol";
+
 
 interface IRootCreateSubscriptionPlan {
     function createSubscriptionPlan(
@@ -7,10 +9,6 @@ interface IRootCreateSubscriptionPlan {
         uint32 subscriptionPlanNonce,
         address owner,
         address service,
-        mapping(address => uint128) tip3Prices,  // second TvmCell
-        uint32 duration,
-        uint128 limitCount,
-        string description,
-        string termUrl
+        SubscriptionPlanData data
     ) external;
 }

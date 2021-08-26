@@ -3,6 +3,7 @@ pragma ton-solidity >= 0.39.0;
 import "./UserSubscription.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
 import "./interfaces/service/IServiceSubscribeCallback.sol";
+import "./structs/SubscriptionPlanData.sol";
 import "./libraries/Balances.sol";
 import "./libraries/Fees.sol";
 import "./libraries/Errors.sol";
@@ -17,17 +18,11 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
     address static _root;
     address static _service;
 
-
-    mapping(address => uint128) _tip3Prices;
-    uint32 _duration;
-//    uint32 _maxPeriods;  // may be time limit (finish time)
-    uint128 _limitCount;
-    string _description;
-    string _termUrl;
+    SubscriptionPlanData _data;
     TvmCell _userSubscriptionCode;
 
     bool _active;
-    uint128 _totalUsersCount;
+    uint64 _totalUsersCount;
 
 
     /*************
@@ -55,18 +50,10 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
      ***************/
 
     constructor(
-        mapping(address => uint128) tip3Prices,
-        uint32 duration,
-        uint128 limitCount,
-        string description,
-        string termUrl,
+        SubscriptionPlanData data,
         TvmCell userSubscriptionCode
     ) public onlyRoot {
-        _tip3Prices = tip3Prices;
-        _duration = duration;
-        _limitCount = limitCount;
-        _description = description;
-        _termUrl = termUrl;
+        _data = data;
         _userSubscriptionCode = userSubscriptionCode;
         _active = true;
         keepBalance(Balances.SUBSCRIPTION_PLAN_BALANCE);
@@ -76,6 +63,10 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
     /***********
      * GETTERS *
      ***********/
+
+    function getInfo() public view responsible returns (SubscriptionPlanData) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _data;
+    }
 
 
     /***********
@@ -102,11 +93,11 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
     }
 
     function canSubscribe() public view returns (bool) {
-        return _active && _totalUsersCount < _limitCount;
+        return _active && _totalUsersCount < _data.limitCount;
     }
 
     function isAcceptableTip3(address root, uint128 amount) public view returns (bool) {
-        return _tip3Prices.exists(root) && amount >= _tip3Prices[root];
+        return _data.tip3Prices.exists(root) && amount >= _data.tip3Prices[root];
     }
 
     function subscribe(
@@ -121,9 +112,9 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
         bool success = false;
         uint128 changeTip3Amount = tip3Amount;
         if (canSubscribe() && !isAcceptableTip3(tip3Root, tip3Amount)) {
-            uint128 tip3Price = _tip3Prices[tip3Root];
+            uint128 tip3Price = _data.tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
-            uint32 extendDuration = uint32(extendPeriods * _duration);  // todo uint128 max value
+            uint32 extendDuration = uint32(extendPeriods * _data.duration);  // todo uint128 max value
             _subscribe(isAutoRenew, extendDuration, senderAddress, senderPubkey);  // todo user, pubkey
             success = true;
             changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
