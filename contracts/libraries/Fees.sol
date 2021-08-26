@@ -8,5 +8,6 @@ library Fees {
     uint128 constant SERVICE_WITHDRAWAL_VALUE = 2 ton;
 
     uint128 constant USER_SUBSCRIPTION_CHANGE_TIP3_PRICE_VALUE = 1 ton;
-    uint128 constant USER_SUBSCRIPTION_EXTEND_VALUE = 0.1 ton;
+
+    uint128 constant USER_SUBSCRIPTION_EXTEND_VALUE = 1 ton;
 }

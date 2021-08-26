@@ -103,7 +103,8 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         uint32 subscriptionPlanNonce,
         address owner,
         address service,
-        SubscriptionPlanData data
+        SubscriptionPlanData data,
+        mapping(address /*root*/ => uint128 /*price*/) tip3Prices
     ) public override onlyService(serviceNonce) {
         _reserve(0);
         TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
@@ -112,14 +113,14 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
             value : Balances.SUBSCRIPTION_PLAN_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
-        }(data, _userSubscriptionCode);
+        }(data, tip3Prices, _userSubscriptionCode);
         Service(service)
             .onSubscriptionPlanCreated {
                 value: 0,
                 flag: MsgFlag.ALL_NOT_RESERVED
             }(
                 address(subscriptionPlan),
-                data.tip3Prices
+                tip3Prices
             );
     }
 

@@ -94,15 +94,15 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      ***********/
 
     function createSubscriptionPlan(
+        mapping(address => uint128) tip3Prices,
         string title,
         uint32 duration,
-        mapping(address => uint128) tip3Prices,
         string description,
         string termUrl,
         uint64 limitCount
     ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
         _reserve(0);
-        SubscriptionPlanData data = SubscriptionPlanData(title, duration, tip3Prices, description, termUrl, limitCount);
+        SubscriptionPlanData data = SubscriptionPlanData(title, duration, description, termUrl, limitCount);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
         IRootCreateSubscriptionPlan(_root)
             .createSubscriptionPlan {
@@ -113,7 +113,8 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
                 subscriptionPlanNonce,
                 _owner,
                 address(this),
-                data
+                data,
+                tip3Prices
             );
     }
 
@@ -153,9 +154,8 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         TvmCell payload
     ) internal override {
         _reserve(0);
-        // todo require gas
         (uint32 subscriptionPlanNonce, bool isAutoRenew) = payload.toSlice().decodeFunctionParams(buildSubscriptionPayload);
-        if (subscriptionPlanNonce >= _subscriptionPlanNonce) {  // wrong nonce
+        if (msg.value < Fees.USER_SUBSCRIPTION_EXTEND_VALUE || subscriptionPlanNonce >= _subscriptionPlanNonce) {
             _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
             senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
             return;

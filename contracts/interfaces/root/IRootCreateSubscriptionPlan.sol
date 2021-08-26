@@ -9,6 +9,7 @@ interface IRootCreateSubscriptionPlan {
         uint32 subscriptionPlanNonce,
         address owner,
         address service,
-        SubscriptionPlanData data
+        SubscriptionPlanData data,
+        mapping(address /*root*/ => uint128 /*price*/) tip3Prices
     ) external;
 }

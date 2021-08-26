@@ -19,6 +19,7 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
     address static _service;
 
     SubscriptionPlanData _data;
+    mapping(address /*root*/ => uint128 /*price*/) _tip3Prices;
     TvmCell _userSubscriptionCode;
 
     bool _active;
@@ -51,9 +52,11 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
 
     constructor(
         SubscriptionPlanData data,
+        mapping(address /*root*/ => uint128 /*price*/) tip3Prices,
         TvmCell userSubscriptionCode
     ) public onlyRoot {
         _data = data;
+        _tip3Prices = tip3Prices;
         _userSubscriptionCode = userSubscriptionCode;
         _active = true;
         keepBalance(Balances.SUBSCRIPTION_PLAN_BALANCE);
@@ -97,7 +100,7 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
     }
 
     function isAcceptableTip3(address root, uint128 amount) public view returns (bool) {
-        return _data.tip3Prices.exists(root) && amount >= _data.tip3Prices[root];
+        return _tip3Prices.exists(root) && amount >= _tip3Prices[root];
     }
 
     function subscribe(
@@ -112,7 +115,7 @@ contract SubscriptionPlan is MinValue, SafeGasExecution {
         bool success = false;
         uint128 changeTip3Amount = tip3Amount;
         if (canSubscribe() && !isAcceptableTip3(tip3Root, tip3Amount)) {
-            uint128 tip3Price = _data.tip3Prices[tip3Root];
+            uint128 tip3Price = _tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
             uint32 extendDuration = uint32(extendPeriods * _data.duration);  // todo uint128 max value
             _subscribe(isAutoRenew, extendDuration, senderAddress, senderPubkey);  // todo user, pubkey
