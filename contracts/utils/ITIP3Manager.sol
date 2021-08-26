@@ -1,18 +1,20 @@
 pragma ton-solidity >= 0.39.0;
 
+import "../libraries/Errors.sol";
 import "../tip3/interfaces/IRootTokenContract.sol";
 import "../tip3/interfaces/ITONTokenWallet.sol";
 import "../tip3/interfaces/ITokensReceivedCallback.sol";
 import "../tip3/interfaces/IExpectedWalletAddressCallback.sol";
-import "../tip3/interfaces/ITokenWalletDeployedCallback.sol";
-import "../Lib.sol";
+
+import "../../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
+
 
 pragma AbiHeader expire;
 pragma AbiHeader time;
 pragma AbiHeader pubkey;
 
 
-abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddressCallback, ITokenWalletDeployedCallback {
+abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddressCallback {
     uint128 constant DEPLOY_EMPTY_WALLET_VALUE = 0.2 ton;
     uint128 constant DEPLOY_EMPTY_WALLET_GRAMS = 0.1 ton;
     uint128 constant SEND_EXPECTED_WALLET_VALUE = 0.1 ton;
@@ -22,11 +24,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
     mapping(address => address) _tip3_wallets;
 
 
-    constructor() public {
-        tvm.accept();
-    }
-
-    function isTip3WalletExists(address tip3_root) public returns (bool) {
+    function isTip3WalletExists(address tip3_root) public view returns (bool) {
         return _tip3_wallets.exists(tip3_root);
     }
 
@@ -75,7 +73,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         ITONTokenWallet(wallet)
             .setReceiveCallback {
                 value: 0,
-                flag: REMAINING_GAS
+                flag: MsgFlag.REMAINING_GAS
             }(
                 address(this),  // receive_callback_
                 false           // allow_non_notifiable_
@@ -97,11 +95,11 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         uint128 /*updated_balance*/,
         TvmCell payload
     ) override public {
-        tip3_wallet = _tip3_wallets[token_root];
+        address tip3_wallet = _tip3_wallets[token_root];
         require(msg.sender == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
         require(token_wallet == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
 
-        _onTip3TokensReceived(token_root, tokens_amount, sender_address, sender_wallet);
+        _onTip3TokensReceived(token_root, tokens_amount, sender_public_key, sender_address, sender_wallet, payload);
         sender_address.transfer({value: 0, flag: MsgFlag.REMAINING_GAS, bounce: false});
     }
 
@@ -112,10 +110,10 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         address sender_address,
         address sender_wallet,
         TvmCell payload
-    ) virtual internal;
+    ) internal virtual;
 
     function _transferTip3Tokens(address root, address destination, uint128 value) internal view {
-        address wallet = _tip3_wallet[root];
+        address wallet = _tip3_wallets[root];
         TvmCell empty;
         ITONTokenWallet(wallet)
             .transfer {
@@ -132,12 +130,12 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
     }
 
     function _transferTip3TokensWithDeploy(address root, address recipient_address, uint128 value) internal view {
-        address wallet = _tip3_wallet[root];
+        address wallet = _tip3_wallets[root];
         TvmCell empty;
         ITONTokenWallet(wallet)
             .transferToRecipient {
                 value: TRANSFER_FEE_VALUE + TIP3_WALLET_DEPLOY_FEE_VALUE,
-                flag: MsgFlags.SENDER_PAYS_FEES
+                flag: MsgFlag.SENDER_PAYS_FEES
             }(
                 0,                             // recipient_public_key
                 recipient_address,             // recipient_address
@@ -146,7 +144,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
                 0,                             // transfer_grams
                 recipient_address,             // send_gas_to
                 true,                          // notify_receiver
-                payload                        // payload
+                empty                          // payload
             );
     }
 

@@ -16,7 +16,7 @@ abstract contract SafeGasExecution {
         __keepBalance = value;
     }
 
-    function _reserve(uint128 additional) internal {
+    function _reserve(uint128 additional) internal view {
         tvm.rawReserve(__keepBalance - msg.value + additional, 2);
     }
 

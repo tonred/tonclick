@@ -1,5 +1,7 @@
 pragma ton-solidity >= 0.39.0;
 
+import "./libraries/Balances.sol";
+import "./libraries/Errors.sol";
 import "./utils/SafeGasExecution.sol";
 
 
@@ -28,9 +30,10 @@ contract UserSubscription is SafeGasExecution {
      * CONSTRUCTOR *
      ***************/
 
-    constructor(bool isAutoRenew) public onlySubscriptionPlan SafeGasExecution(Balances.USER_SUBSCRIPTION_BALANCE) {
+    constructor(bool isAutoRenew) public onlySubscriptionPlan {
         tvm.accept();
         _isAutoRenew = isAutoRenew;
+        keepBalance(Balances.USER_SUBSCRIPTION_BALANCE);
     }
 
 
@@ -43,7 +46,7 @@ contract UserSubscription is SafeGasExecution {
      * METHODS *
      ***********/
 
-    function isActive() public pure returns (bool) {
+    function isActive() public view returns (bool) {
         return now <= _finishTime;
     }
 

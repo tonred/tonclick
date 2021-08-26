@@ -2,16 +2,17 @@ pragma ton-solidity >= 0.48.0;
 
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
+import "./libraries/Constants.sol";
 import "./utils/SafeGasExecution.sol";
-import "./interfaces/IServiceDeployedCallback.sol";
-import "./interfaces/ISubscriptionsRoot.sol";
+import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
+import "./interfaces/root/IRootWithdrawal.sol";
 
 import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 import "../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
 import "../node_modules/@broxus/contracts/contracts/access/InternalOwner.sol";
 
 
-contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, InternalOwner*/ {
+contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, SafeGasExecution,  RandomNonce /*, InternalOwner*/ {
 
     address _owner;
     uint32 _serviceNonce;
@@ -34,9 +35,9 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
     }
 
     modifier onlyService(uint32 serviceNonce) {
-        require(serviceNonce <= _serviceNonce, 999);
+        require(serviceNonce <= _serviceNonce, 999);  // todo
         TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);
-        require(msg.sender == _calcAddress(stateInit), 999);
+        require(msg.sender == _calcAddress(serviceStateInit), 999);  // todo
         _;
     }
 
@@ -51,11 +52,11 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
         TvmCell userSubscriptionCode
     ) public onlyOwner {
         tvm.accept();
-        _keepBalance = 1 ton;  // todo fix
         _owner = owner;
         _serviceCode = serviceCode;
         _subscriptionPlanCode = subscriptionPlanCode;
         _userSubscriptionCode = userSubscriptionCode;
+        keepBalance(Balances.ROOT_BALANCE);
     }
 
 
@@ -69,16 +70,16 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
      ***********/
 
     function createService(address owner, string description, string url) public safeGasModifier {
-        TvmCell stateInit = _buildServiceStateInit(_serviceNonceIndex++);
-        Service service = new Service {
+        TvmCell stateInit = _buildServiceStateInit(_serviceNonce++);
+        new Service {
             stateInit : stateInit,
             value : Balances.SERVICE_BALANCE,
-            flag: MsgFlags.SENDER_PAYS_FEES,
+            flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(owner, description, url);
     }
 
-    function _buildServiceStateInit(uint64 nonce) private view returns (TvmCell) {
+    function _buildServiceStateInit(uint32 nonce) private view returns (TvmCell) {
         return tvm.buildStateInit({
             contr: Service,
             varInit: {
@@ -89,8 +90,8 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
     }
 
     function createSubscriptionPlan(
-        uint64 serviceNonce,  // todo use TvmCell
-        uint64 subscriptionPlanNonce,
+        uint32 serviceNonce,  // todo use TvmCell
+        uint32 subscriptionPlanNonce,
         address owner,
         address service,
         mapping(address => uint128) tip3Prices,  // second TvmCell
@@ -98,35 +99,36 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
         uint128 limitCount,
         string description,
         string termUrl
-    ) public {
+    ) public override {
         _reserve(0);
-        TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);
-        address serviceExpectedAddress = _calcAddress(stateInit);
+        TvmCell serviceStateInit = _buildServiceStateInit(serviceNonce);  // todo
+        address serviceExpectedAddress = _calcAddress(serviceStateInit);
         require(msg.sender == serviceExpectedAddress, 6969);  // todo not service
 
         TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
         SubscriptionPlan subscriptionPlan = new SubscriptionPlan {
             stateInit : subscriptionPlanStateInit,
             value : Balances.SUBSCRIPTION_PLAN_BALANCE,
-            flag: MsgFlags.SENDER_PAYS_FEES,
+            flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(tip3Prices, duration, limitCount, description, termUrl, _userSubscriptionCode);
         Service(service)
             .onSubscriptionPlanCreated {
                 value: 0,
-                flag: MsgFlags.ALL_NOT_RESERVED,
+                flag: MsgFlag.ALL_NOT_RESERVED
             }(
                 address(subscriptionPlan),
                 tip3Prices
             );
     }
 
-    function _buildSubscriptionPlanStateInit(uint64 nonce, address owner, address service) private view returns (TvmCell) {
+    function _buildSubscriptionPlanStateInit(uint32 nonce, address owner, address service) private view returns (TvmCell) {
         return tvm.buildStateInit({
             contr: SubscriptionPlan,
             varInit: {
                 _nonce : nonce,
                 _owner: owner,
+                _root: address(this),
                 _service: service
             },
             code : _subscriptionPlanCode
@@ -142,15 +144,12 @@ contract Root is ISubscriptionsRoot, SafeGasExecution,  RandomNonce /*, Internal
         _feeDenominator = denominator;
     }
 
-    function getWithdrawalParams(address tip3Root, TvmCell payload) public {
+    function getWithdrawalParams(TvmCell payload) public override {
         _reserve(0);
-        if (!isTip3WalletExists(tip3Root)) {
-            _addTip3Wallet(tip3Root);
-        }
         Service(msg.sender)
             .getWithdrawalParamsCallback {
                 value: 0,
-                flag: MsgFlags.ALL_NOT_RESERVED
+                flag: MsgFlag.ALL_NOT_RESERVED
             }(
                 _feeNumerator,
                 _feeDenominator,

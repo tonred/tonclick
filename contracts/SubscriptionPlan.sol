@@ -1,12 +1,16 @@
 pragma ton-solidity >= 0.39.0;
 
+import "./UserSubscription.sol";
+import "./interfaces/service/IServiceAddTip3Wallets.sol";
+import "./interfaces/service/IServiceSubscribeCallback.sol";
 import "./utils/SafeGasExecution.sol";
 
 
 contract SubscriptionPlan is SafeGasExecution {
 
-    uint64 static _nonce;
+    uint32 static _nonce;
     address static _owner;
+    address static _root;
     address static _service;
 
 
@@ -26,8 +30,18 @@ contract SubscriptionPlan is SafeGasExecution {
      * MODIFIERS *
      *************/
 
+    modifier onlyOwner() {
+        require(msg.sender == _owner, Errors.IS_NOT_OWNER);
+        _;
+    }
+
     modifier onlyRoot() {
         require(msg.sender == _root, Errors.IS_NOT_ROOT);
+        _;
+    }
+
+    modifier onlyService() {
+        require(msg.sender == _service, Errors.IS_NOT_SERVICE);
         _;
     }
 
@@ -37,12 +51,12 @@ contract SubscriptionPlan is SafeGasExecution {
      ***************/
 
     constructor(
-        mapping(address => uint128) _tip3Prices,
-        uint32 _duration,
-        uint128 _limitCount,
-        string _description,
-        string _termUrl,
-        TvmCell _userSubscriptionCode
+        mapping(address => uint128) tip3Prices,
+        uint32 duration,
+        uint128 limitCount,
+        string description,
+        string termUrl,
+        TvmCell userSubscriptionCode
     ) public onlyRoot {
         _tip3Prices = tip3Prices;
         _duration = duration;
@@ -51,7 +65,7 @@ contract SubscriptionPlan is SafeGasExecution {
         _termUrl = termUrl;
         _userSubscriptionCode = userSubscriptionCode;
         _active = true;
-        keepBalances(Balances.SUBSCRIPTION_PLAN_BALANCE);
+        keepBalance(Balances.SUBSCRIPTION_PLAN_BALANCE);
     }
 
 
@@ -73,19 +87,19 @@ contract SubscriptionPlan is SafeGasExecution {
     }
 
 
-    function changeTip3Prices(mapping(address => uint128) tip3Prices) public onlyOwner safeGasModifier {
+    function changeTip3Prices(mapping(address => uint128) tip3Prices) public view onlyOwner {
         // todo require gas
         _reserve(0);
-        Service(_service).addTip3Wallets{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(tip3Prices);
+        IServiceAddTip3Wallets(_service).addTip3Wallets{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(_nonce, tip3Prices);
     }
 
-    function addTip3WalletsCallback() public onlyOwner {
+    function addTip3WalletsCallback() public view onlyOwner {
         _reserve(0);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
     function canSubscribe() public view returns (bool) {
-        return _active && _usersCount < _limitCount;
+        return _active && _totalUsersCount < _limitCount;
     }
 
     function isRightTip3(address root, uint128 amount) public view returns (bool) {
@@ -101,18 +115,17 @@ contract SubscriptionPlan is SafeGasExecution {
         bool isAutoRenew
     ) public onlyService {
         _reserve(0);
+        bool success = false;
+        uint128 changeTip3Amount = tip3Amount;
         if (canSubscribe() && !isRightTip3(tip3Root, tip3Amount)) {
             uint128 tip3Price = _tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
-            uint32 extendDuration = extendPeriods * _duration;
-            _subscribe(isAutoRenew, extendDuration, user, pubkey);
-            bool success = true;
-            uint128 changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
-        } else {
-            bool success = false;
-            uint128 changeTip3Amount = tip3Amount;
+            uint32 extendDuration = uint32(extendPeriods * _duration);  // todo uint128 max value
+            _subscribe(isAutoRenew, extendDuration, senderAddress, senderPubkey);  // todo user, pubkey
+            success = true;
+            changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
         }
-        Service(_service)
+        IServiceSubscribeCallback(_service)
             .subscribeCallback {
                 value: 0,
                 flag: MsgFlag.ALL_NOT_RESERVED
@@ -132,19 +145,19 @@ contract SubscriptionPlan is SafeGasExecution {
             stateInit : stateInit,
             value : Balances.USER_SUBSCRIPTION_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
-            bounce: true
+            bounce: false
         }(isAutoRenew);
         _totalUsersCount++;  // if user already have a subscription, this counter will be decreased in `onBounce` step
-        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(extendDuration);
+        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(extendDuration);  // todo callback and _totalUsersCount--
     }
 
-    function unsubscribe() public {
+    function unsubscribe() public view {
         _reserve(0);
         address userSubscription = getUserSubscription(msg.sender, msg.pubkey());
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}();
     }
 
-    function getUserSubscription(address user, uint256 pubkey) public pure returns (address) {
+    function getUserSubscription(address user, uint256 pubkey) public view returns (address) {
         TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
         return _calcAddress(stateInit);
     }
@@ -164,13 +177,5 @@ contract SubscriptionPlan is SafeGasExecution {
     function _calcAddress(TvmCell stateInit) private pure returns (address) {
         return address.makeAddrStd(0, tvm.hash(stateInit));
     }
-
-
-	onBounce(TvmSlice slice) external {
-		uint32 functionId = slice.decode(uint32);
-		if (functionId == tvm.functionId(UserSubscription.constructor)) {
-            _totalUsersCount--;
-		}
-	}
 
 }
