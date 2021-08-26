@@ -23,6 +23,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
 
 
     address _owner;
+    string _title;
     string _description;
     string _url;
 
@@ -56,8 +57,9 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      * CONSTRUCTOR *
      ***************/
 
-    constructor(address owner, string description, string url) public onlyRoot {
+    constructor(address owner, string title, string description, string url) public onlyRoot {
         _owner = owner;
+        _title = title;
         _description = description;
         _url = url;
         keepBalance(Balances.SERVICE_BALANCE);

@@ -75,6 +75,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
 
     function createService(
         address owner,
+        string title,
         string description,
         string url
     ) public minValue(Fees.CREATE_SERVICE_VALUE) safeGasModifier {
@@ -84,7 +85,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
             value : Balances.SERVICE_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
-        }(owner, description, url);
+        }(owner, title, description, url);
         // todo callback that service is created
     }
 
