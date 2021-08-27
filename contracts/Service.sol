@@ -150,13 +150,13 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     function _onTip3TokensReceived(
         address tip3Root,
         uint128 tip3Amount,
-        uint256 senderPubkey,
         address senderAddress,
         address senderWallet,
         TvmCell payload
     ) internal override {
         _reserve(0);
-        (uint32 subscriptionPlanNonce, bool isAutoRenew) = payload.toSlice().decodeFunctionParams(buildSubscriptionPayload);
+        (uint32 subscriptionPlanNonce, uint256 pubkey, bool isAutoRenew) = payload.toSlice()
+            .decodeFunctionParams(buildSubscriptionPayload);
         if (msg.value < Fees.USER_SUBSCRIPTION_EXTEND_VALUE || subscriptionPlanNonce >= _subscriptionPlanNonce) {
             _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
             senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
@@ -168,12 +168,16 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         subscriptionPlan.subscribe{
             value: 0,
             flag: MsgFlag.ALL_NOT_RESERVED
-        }(tip3Root, tip3Amount, senderPubkey, senderAddress, senderWallet, isAutoRenew);
+        }(tip3Root, tip3Amount, senderAddress, senderWallet, pubkey, isAutoRenew);
     }
 
-    function buildSubscriptionPayload(uint32 subscriptionPlanNonce, bool isAutoRenew) public pure returns (TvmCell) {
+    function buildSubscriptionPayload(
+        uint32 subscriptionPlanNonce,
+        uint256 pubkey,
+        bool isAutoRenew
+    ) public pure returns (TvmCell) {
         TvmBuilder builder;
-        builder.store(subscriptionPlanNonce, isAutoRenew);
+        builder.store(subscriptionPlanNonce, pubkey, isAutoRenew);
         return builder.toCell();
     }
 

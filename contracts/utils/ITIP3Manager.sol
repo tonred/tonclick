@@ -88,7 +88,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         address token_wallet,
         address token_root,
         uint128 tokens_amount,
-        uint256 sender_public_key,
+        uint256 /*sender_public_key*/,
         address sender_address,
         address sender_wallet,
         address /*original_gas_to*/,
@@ -99,14 +99,13 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         require(msg.sender == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
         require(token_wallet == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
 
-        _onTip3TokensReceived(token_root, tokens_amount, sender_public_key, sender_address, sender_wallet, payload);
+        _onTip3TokensReceived(token_root, tokens_amount, sender_address, sender_wallet, payload);
         sender_address.transfer({value: 0, flag: MsgFlag.REMAINING_GAS, bounce: false});
     }
 
     function _onTip3TokensReceived(
         address token_root,
         uint128 tokens_amount,
-        uint256 sender_public_key,
         address sender_address,
         address sender_wallet,
         TvmCell payload
