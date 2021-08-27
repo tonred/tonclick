@@ -82,12 +82,9 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _virtualBalances;
     }
 
-    function getOneBalance(address tip3Root) public view responsible returns (uint128) {  // todo refactor
-        if (_virtualBalances.exists(tip3Root)) {
-            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _virtualBalances[tip3Root];
-        } else {
-            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} 0;
-        }
+    function getOneBalance(address tip3Root) public view responsible returns (uint128) {
+        uint128 balance = _virtualBalances.exists(tip3Root) ? _virtualBalances[tip3Root] : 0;
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} balance;
     }
 
 

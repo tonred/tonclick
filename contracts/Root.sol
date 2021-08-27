@@ -8,6 +8,7 @@ import "./libraries/Constants.sol";
 import "./libraries/Errors.sol";
 import "./utils/MinValue.sol";
 import "./utils/SafeGasExecution.sol";
+import "./interfaces/root/ICreateServiceCallback.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
 
@@ -80,20 +81,21 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         string url
     ) public minValue(Fees.CREATE_SERVICE_VALUE) safeGasModifier {
         TvmCell stateInit = _buildServiceStateInit(_serviceNonce++);
-        new Service {
+        Service service = new Service {
             stateInit : stateInit,
             value : Balances.SERVICE_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(owner, title, description, url);
-        // todo callback that service is created
+        ICreateServiceCallback(msg.sender).createServiceCallback(service);
     }
 
     function _buildServiceStateInit(uint32 nonce) private view returns (TvmCell) {
         return tvm.buildStateInit({
             contr: Service,
             varInit: {
-                _nonce : nonce
+                _nonce : nonce,
+                _root: address(this)
             },
             code : _serviceCode
         });
