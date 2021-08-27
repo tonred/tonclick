@@ -1,4 +1,4 @@
-pragma ton-solidity >= 0.48.0;
+pragma ton-solidity >= 0.47.0;
 
 import "./SubscriptionPlan.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";

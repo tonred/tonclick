@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/tonred/tonclick#readme",
   "dependencies": {
-    "@broxus/contracts": "git://github.com/pavelkhachatrian/ton-contracts",
+    "@broxus/contracts": "git://github.com/pavelkhachatrian/ton-contracts.git",
     "bignumber.js": "^9.0.1",
     "chai": "^4.3.4",
     "locklift": "^1.4.4",
