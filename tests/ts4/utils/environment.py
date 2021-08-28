@@ -6,7 +6,8 @@ from utils.tip3 import TIP3Helper
 from utils.user import User
 from utils.utils import random_address
 
-CREATE_SUBSCRIPTION_PLAN_VALUE = int(1.5 * ts4.GRAM)
+CREATE_SUBSCRIPTION_PLAN_VALUE = int(1.5 * ts4.GRAM)  # from libraries/Fees.sol
+USER_SUBSCRIPTION_EXTEND_VALUE = 1 * ts4.GRAM  # from libraries/Fees.sol
 
 SERVICE_TITLE = 'TON RED'
 SERVICE_DESCRIPTION = 'First service ever!'
@@ -33,7 +34,10 @@ class Environment:
         self._service_owner = self.create_user()
         self._service = self._deploy_service()
 
-        self._deploy_subscription_plan()
+        self._subscription_plan = self._deploy_subscription_plan()
+
+        self._user = self.create_user()
+        self._user_subscription = self._deploy_user_subscription(self._user, value=SUBSCRIPTION_PLAN_TIP3_PRICE)
 
     def create_user(self) -> User:
         return User(self._tip3_helper)
@@ -89,3 +93,20 @@ class Environment:
         subscription_plans = self._service.call_getter('getSubscriptionPlans', {'answerId': 0})
         address = subscription_plans[0]
         return ts4.BaseContract('SubscriptionPlan', {}, nickname='SubscriptionPlan', address=address)
+
+    def _deploy_user_subscription(self, user: User, is_auto_renew: bool = True, *, value: int) -> ts4.BaseContract:
+        payload = self._service.call_getter('buildSubscriptionPayload', {
+            'subscriptionPlanNonce': 0,
+            'pubkey': user.ton_wallet.public_key_,
+            'isAutoRenew': is_auto_renew,
+        })
+        print(user.tip3_balance)
+        user.transfer_tip3(self._service.address, value, USER_SUBSCRIPTION_EXTEND_VALUE, payload=payload)
+        address = self._subscription_plan.call_getter('getUserSubscription', {
+            'user': user.ton_wallet.address,
+            'pubkey': user.ton_wallet.public_key_,
+        })
+        print(address)
+        x = ts4.BaseContract('UserSubscription', {}, nickname='UserSubscription', address=address)
+        print(x.call_getter('isActive'))
+        return x

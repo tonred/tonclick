@@ -188,7 +188,9 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
         _virtualBalances[tip3Root] -= changeTip3Amount;
-        _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
+        if (changeTip3Amount > 0) {
+            _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
+        }
         senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 

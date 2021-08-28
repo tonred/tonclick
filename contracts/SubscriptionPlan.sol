@@ -126,7 +126,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         bool success = false;
         uint128 changeTip3Amount = tip3Amount;
-        if (canSubscribe() && !isAcceptableTip3(tip3Root, tip3Amount)) {
+        if (canSubscribe() && isAcceptableTip3(tip3Root, tip3Amount)) {
             uint128 tip3Price = _tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
             uint32 extendDuration = uint32(extendPeriods * _data.duration);  // todo uint128 max value

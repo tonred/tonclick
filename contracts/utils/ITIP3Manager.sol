@@ -5,6 +5,7 @@ import "../tip3/interfaces/IRootTokenContract.sol";
 import "../tip3/interfaces/ITONTokenWallet.sol";
 import "../tip3/interfaces/ITokensReceivedCallback.sol";
 import "../tip3/interfaces/IExpectedWalletAddressCallback.sol";
+import "../tip3/interfaces/ITokenWalletDeployedCallback.sol";
 
 import "../../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
@@ -14,7 +15,7 @@ pragma AbiHeader time;
 pragma AbiHeader pubkey;
 
 
-abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddressCallback {
+abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddressCallback, ITokenWalletDeployedCallback {
     uint128 constant DEPLOY_EMPTY_WALLET_VALUE = 0.2 ton;
     uint128 constant DEPLOY_EMPTY_WALLET_GRAMS = 0.1 ton;
     uint128 constant SEND_EXPECTED_WALLET_VALUE = 0.1 ton;
@@ -80,9 +81,9 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
             );
     }
 
-//    function notifyWalletDeployed(address /*root*/) override public {
+    function notifyWalletDeployed(address /*root*/) public override {
 //        tvm.log("notifyWalletDeployed");
-//    }
+    }
 
     function tokensReceivedCallback(
         address token_wallet,
@@ -98,9 +99,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
         address tip3_wallet = _tip3_wallets[token_root];
         require(msg.sender == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
         require(token_wallet == tip3_wallet, Errors.IS_NOT_TIP3_OWNER);
-
         _onTip3TokensReceived(token_root, tokens_amount, sender_address, sender_wallet, payload);
-        sender_address.transfer({value: 0, flag: MsgFlag.REMAINING_GAS, bounce: false});
     }
 
     function _onTip3TokensReceived(

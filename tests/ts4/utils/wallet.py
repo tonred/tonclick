@@ -4,6 +4,7 @@ from tonclient.test.helpers import sync_core_client
 from tonclient.types import Abi, Signer, CallSet, ParamsOfEncodeMessageBody
 from tonos_ts4 import ts4
 
+from config import EMPTY_CELL
 from utils.utils import random_address
 
 
@@ -33,7 +34,8 @@ class Wallet(ts4.BaseContract):
             is_internal=True,
         )
         message = sync_core_client.abi.encode_message_body(params=encode_params)
-        self.send_transaction(dest, value, payload=message.body, expect_ec=expect_ec)
+        payload = ts4.Cell(message.body)
+        self.send_transaction(dest, value, payload=payload, expect_ec=expect_ec)
 
     def send_transaction(
             self,
@@ -41,16 +43,15 @@ class Wallet(ts4.BaseContract):
             value: int,
             bounce: bool = True,
             flags: int = 1,
-            payload: str = ts4.EMPTY_CELL,
+            payload: ts4.Cell = EMPTY_CELL,
             expect_ec: int = 0,
     ):
-        payload_cell = ts4.Cell(payload)
         self.call_method('sendTransaction', {
             'dest': dest,
             'value': value,
             'bounce': bounce,
             'flags': flags,
-            'payload': payload_cell,
+            'payload': payload,
         }, private_key=self.private_key_)
         ts4.dispatch_one_message(expect_ec=expect_ec)
         ts4.dispatch_messages()

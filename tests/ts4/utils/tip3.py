@@ -7,6 +7,7 @@ class TIP3Helper:
 
     def __init__(self):
         self._tip3_deployer = self._create_tip3_deployer()
+        self._deploy_tip3()
 
     @staticmethod
     def _create_tip3_deployer() -> ts4.BaseContract:
@@ -16,6 +17,9 @@ class TIP3Helper:
             'root_code': root_code,
             'wallet_code': wallet_code,
         }, nickname='TIP3Deployer', override_address=random_address())
+
+    def _deploy_tip3(self):
+        self._tip3_deployer.call_method('deployRootTIP3');
 
     @property
     def tip3_root(self) -> ts4.Address:
