@@ -1,6 +1,7 @@
 from tonclient.types import CallSet
 
 from base import BaseTest
+from config import INIT_TIP3_VALUE
 from utils.libraries import Fees
 
 
@@ -48,3 +49,32 @@ class SubscriptionPlanTest(BaseTest):
         user_subscription = self._deploy_user_subscription(user, auto_renew=False)
         self._increase_time(self.environment.SUBSCRIPTION_PLAN_DURATION + 1)
         self.assertEqual(user_subscription.active, False, 'Subscription must be expired')
+
+    def test_subscription_long_term(self):
+        periods_count = 3
+        user = self.environment.create_user()
+        value = periods_count * self.environment.SUBSCRIPTION_PLAN_TIP3_PRICE
+        user_subscription = self._deploy_user_subscription(user, value=value, auto_renew=False)
+        self._increase_time(periods_count * self.environment.SUBSCRIPTION_PLAN_DURATION - 1)
+        self.assertEqual(user_subscription.active, True, 'Subscription must not be expired')
+
+    def test_subscription_change_return(self):
+        """
+        it must be calculated as 2 full periods
+        and the change must be returned
+        """
+        user = self.environment.create_user()
+        value = int(2.5 * self.environment.SUBSCRIPTION_PLAN_TIP3_PRICE)
+        self._deploy_user_subscription(user, value=value, auto_renew=False)
+        user_tip3_cost = INIT_TIP3_VALUE - user.tip3_balance
+        expected_cost = 2 * self.environment.SUBSCRIPTION_PLAN_TIP3_PRICE
+        self.assertEqual(user_tip3_cost, expected_cost, 'Subscription must not be expired')
+
+    def test_extend_after_expire(self):
+        user = self.environment.create_user()
+        user_subscription = self._deploy_user_subscription(user)
+        self._increase_time(10 * self.environment.SUBSCRIPTION_PLAN_DURATION)
+        self.assertEqual(user_subscription.active, False, 'Subscription must be expired')
+        # after expire extend subscription
+        self._deploy_user_subscription(user)
+        self.assertEqual(user_subscription.active, True, 'Subscription must not be expired')

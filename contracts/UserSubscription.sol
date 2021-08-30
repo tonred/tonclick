@@ -57,6 +57,10 @@ contract UserSubscription is SafeGasExecution {
         return now <= _finishTime;
     }
 
+    function getFinishTime() public view returns (uint32) {
+        return _finishTime;
+    }
+
     function extend(uint32 extendDuration, bool autoRenew) public onlySubscriptionPlan {
         _reserve(0);
         bool isActivateAutoRenew = (!_autoRenew || _firstCallback) && autoRenew;

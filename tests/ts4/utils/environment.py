@@ -92,11 +92,11 @@ class Environment:
         return SubscriptionPlan(address)
 
     def deploy_user_subscription(self, user: User, value: int, auto_renew: bool = True) -> UserSubscription:
-        payload = self.service.call_getter('buildSubscriptionPayload', {
-            'subscriptionPlanNonce': 0,
-            'pubkey': user.ton_wallet.public_key_,
-            'autoRenew': auto_renew,
-        })
+        payload = self.service.build_subscription_payload(
+            subscription_plan_nonce=0,
+            pubkey=user.ton_wallet.public_key_,
+            auto_renew=auto_renew,
+        )
         user.transfer_tip3(self.service.address, value, Fees.USER_SUBSCRIPTION_EXTEND_VALUE, payload=payload)
         address = self.subscription_plan.get_user_subscription(
             user=user.ton_wallet.address,
