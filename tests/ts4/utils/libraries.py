@@ -1,4 +1,4 @@
-# from 'library' folder
+# from 'contracts/libraries' folder
 
 from enum import IntEnum
 

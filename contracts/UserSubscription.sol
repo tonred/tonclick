@@ -54,7 +54,6 @@ contract UserSubscription is SafeGasExecution {
     }
 
     function isActive() public view returns (bool) {
-        tvm.log(format('{} {}', now, _finishTime));
         return now <= _finishTime;
     }
 

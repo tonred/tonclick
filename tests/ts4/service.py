@@ -11,7 +11,7 @@ class ServiceTest(BaseTest):
         # set root fee value to 2%
         fee_numerator = 2
         fee_denominator = 100
-        self._set_withdrawal_fee(fee_numerator, fee_denominator)
+        self.root.set_withdrawal_fee(self.environment.root_owner, fee_numerator, fee_denominator)
 
         # create 10 subscribers
         users_count = 10
@@ -19,7 +19,7 @@ class ServiceTest(BaseTest):
         for _ in range(users_count):
             user = self.environment.create_user()
             self._deploy_user_subscription(user)
-        virtual_balances = self.service.call_getter('getBalances', {'answerId': 0})
+        virtual_balances = self.service.get_balances()
         tip3_root, virtual_balance = list(virtual_balances.items())[0]
         self.assertEqual(virtual_balance, expected_balance, 'Wrong virtual balance')
 
@@ -34,7 +34,7 @@ class ServiceTest(BaseTest):
         )
 
         # check result balances
-        virtual_balance = self.service.call_getter('getBalances', {'answerId': 0})[tip3_root]
+        virtual_balance = self.service.get_one_balances(tip3_root)
         self.assertEqual(virtual_balance, 0, 'Wrong virtual balance after withdrawal')
         root_income = self.environment.root_owner.tip3_balance - INIT_TIP3_VALUE
         root_income_expected = expected_balance * fee_numerator // fee_denominator
