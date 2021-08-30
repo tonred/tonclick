@@ -111,6 +111,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
     ) internal virtual;
 
     function _transferTip3Tokens(address root, address destination, uint128 value) internal view {
+        if (value == 0) return;
         address wallet = _tip3_wallets[root];
         TvmCell empty;
         ITONTokenWallet(wallet)
@@ -128,6 +129,7 @@ abstract contract ITIP3Manager is ITokensReceivedCallback, IExpectedWalletAddres
     }
 
     function _transferTip3TokensWithDeploy(address root, address recipient_address, uint128 value) internal view {
+        if (value == 0) return;
         address wallet = _tip3_wallets[root];
         TvmCell empty;
         ITONTokenWallet(wallet)

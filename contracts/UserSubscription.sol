@@ -13,9 +13,9 @@ contract UserSubscription is SafeGasExecution {
     uint256 static _pubkey;
 
 
-    bool _isAutoRenew;
+    bool _autoRenew;
     uint32 _finishTime;
-    bool _isFirstCallback;
+    bool _firstCallback;
 
 
     /*************
@@ -32,10 +32,10 @@ contract UserSubscription is SafeGasExecution {
      * CONSTRUCTOR *
      ***************/
 
-    constructor(bool isAutoRenew) public onlySubscriptionPlan {
+    constructor(bool autoRenew) public onlySubscriptionPlan {
         tvm.accept();
-        _isAutoRenew = isAutoRenew;
-        _isFirstCallback = true;
+        _autoRenew = autoRenew;
+        _firstCallback = true;
         keepBalance(Balances.USER_SUBSCRIPTION_BALANCE);
     }
 
@@ -49,14 +49,19 @@ contract UserSubscription is SafeGasExecution {
      * METHODS *
      ***********/
 
+    function isAutoRenew() public view returns (bool) {
+        return _autoRenew;
+    }
+
     function isActive() public view returns (bool) {
+        tvm.log(format('{} {}', now, _finishTime));
         return now <= _finishTime;
     }
 
-    function extend(uint32 extendDuration, bool isAutoRenew) public onlySubscriptionPlan {
+    function extend(uint32 extendDuration, bool autoRenew) public onlySubscriptionPlan {
         _reserve(0);
-        bool isActivateAutoRenew = (!_isAutoRenew || _isFirstCallback) && isAutoRenew;
-        _isAutoRenew = isAutoRenew;
+        bool isActivateAutoRenew = (!_autoRenew || _firstCallback) && autoRenew;
+        _autoRenew = autoRenew;
         _extend(extendDuration);
         ISubscriptionPlanCallbacks(_subscriptionPlan)
             .subscribeCallback{
@@ -65,10 +70,10 @@ contract UserSubscription is SafeGasExecution {
             }(
                 _user,
                 _pubkey,
-                _isFirstCallback,
+                _firstCallback,
                 isActivateAutoRenew
             );
-        _isFirstCallback = false;
+        _firstCallback = false;
     }
 
     function _extend(uint32 extendDuration) private {
@@ -81,8 +86,8 @@ contract UserSubscription is SafeGasExecution {
 
     function cancel() public onlySubscriptionPlan {
         _reserve(0);
-        bool isDeactivateAutoRenew = _isAutoRenew;
-        _isAutoRenew = false;
+        bool isDeactivateAutoRenew = _autoRenew;
+        _autoRenew = false;
         ISubscriptionPlanCallbacks(_subscriptionPlan)
             .unsubscribeCallback{
                 value: 0,

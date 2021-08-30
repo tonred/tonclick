@@ -4,7 +4,7 @@ import os
 from tonclient.types import CallSet
 from tonos_ts4 import ts4
 
-from config import BUILD_ARTIFACTS_PATH, EMPTY_CELL
+from config import BUILD_ARTIFACTS_PATH, EMPTY_CELL, INIT_TIP3_VALUE
 from utils.tip3 import TIP3Helper
 from utils.wallet import Wallet
 
@@ -17,7 +17,7 @@ class User:
 
     @staticmethod
     def _create_tip3_wallet(owner: ts4.Address, tip3_helper: TIP3Helper) -> ts4.BaseContract:
-        address = tip3_helper.deploy_tip3_wallet(owner)
+        address = tip3_helper.deploy_tip3_wallet(owner, INIT_TIP3_VALUE)
         return ts4.BaseContract('TONTokenWallet', {}, nickname='TONTokenWallet', address=address)
 
     def transfer_tip3(
@@ -40,7 +40,7 @@ class User:
             'payload': payload.raw_,
         })
         abi = self._load_tip3_wallet_abi()
-        self.ton_wallet.send_call_set(
+        self.ton_wallet.send_call_set_custom(
             self.tip3_wallet.address,
             1 * ts4.GRAM,
             call_set=call_set,

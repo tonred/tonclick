@@ -69,6 +69,10 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
      * GETTERS *
      ***********/
 
+    function getWithdrawalFee() public view responsible returns (uint128, uint128) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (_feeNumerator, _feeDenominator);
+    }
+
 
     /***********
      * METHODS *
@@ -144,7 +148,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         return address.makeAddrStd(0, tvm.hash(stateInit));
     }
 
-    function changeFee(uint128 numerator, uint128 denominator) public onlyOwner safeGasModifier {
+    function setWithdrawalFee(uint128 numerator, uint128 denominator) public onlyOwner safeGasModifier {
         _feeNumerator = numerator;
         _feeDenominator = denominator;
     }
@@ -158,6 +162,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
             }(
                 _feeNumerator,
                 _feeDenominator,
+                _owner,
                 payload
             );
     }

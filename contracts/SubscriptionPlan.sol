@@ -83,6 +83,14 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _tip3Prices;
     }
 
+    function getTotalUsersCount() public view responsible returns (uint64) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _totalUsersCount;
+    }
+
+    function getActiveUsersCount() public view responsible returns (uint64) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _activeUsersCount;
+    }
+
 
     /***********
      * METHODS *
@@ -121,7 +129,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         address senderAddress,
         address senderWallet,
         uint256 pubkey,
-        bool isAutoRenew
+        bool autoRenew
     ) public view onlyService {
         _reserve(0);
         bool success = false;
@@ -130,7 +138,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
             uint128 tip3Price = _tip3Prices[tip3Root];
             uint128 extendPeriods = tip3Amount / tip3Price;
             uint32 extendDuration = uint32(extendPeriods * _data.duration);  // todo uint128 max value
-            _subscribe(senderAddress, pubkey, isAutoRenew, extendDuration);
+            _subscribe(senderAddress, pubkey, autoRenew, extendDuration);
             success = true;
             changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
         }
@@ -148,30 +156,30 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
             );
     }
 
-    function _subscribe(address user, uint256 pubkey, bool isAutoRenew, uint32 extendDuration) private view {
+    function _subscribe(address user, uint256 pubkey, bool autoRenew, uint32 extendDuration) private view {
         TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
         UserSubscription userSubscription = new UserSubscription{
             stateInit : stateInit,
             value : Balances.USER_SUBSCRIPTION_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
-        }(isAutoRenew);
-        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(extendDuration, isAutoRenew);
+        }(autoRenew);
+        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(extendDuration, autoRenew);
     }
 
     function subscribeCallback(
         address user,
         uint256 pubkey,
-        bool isFirstCallback,
+        bool firstCallback,
         bool isActivateAutoRenew
     ) public override onlyUserSubscription(user, pubkey) {
         _reserve(0);
-        if (isFirstCallback) _totalUsersCount++;
+        if (firstCallback) _totalUsersCount++;
         if (isActivateAutoRenew) _activeUsersCount++;
         user.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
-    function unsubscribe(TvmCell payload) public view {
+    function unsubscribe(TvmCell payload) minValue(Fees.USER_SUBSCRIPTION_CANCEL_VALUE) public view {
         _reserve(0);
         (address user, uint256 pubkey) = payload.toSlice().decodeFunctionParams(buildUnsubscribePayload);
         address userSubscription = getUserSubscription(user, pubkey);

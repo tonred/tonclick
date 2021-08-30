@@ -19,7 +19,10 @@ class Wallet(ts4.BaseContract):
             keypair=ts4.make_keypair(),
         )
 
-    def send_call_set(
+    def send_call_set(self, contract: ts4.BaseContract, value: int, call_set: CallSet, expect_ec: int = 0):
+        self.send_call_set_custom(contract.address, value, call_set, contract.abi_, expect_ec)
+
+    def send_call_set_custom(
             self,
             dest: ts4.Address,
             value: int,

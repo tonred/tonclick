@@ -19,13 +19,16 @@ class TIP3Helper:
         }, nickname='TIP3Deployer', override_address=random_address())
 
     def _deploy_tip3(self):
-        self._tip3_deployer.call_method('deployRootTIP3');
+        self._tip3_deployer.call_method('deployRootTIP3')
 
     @property
     def tip3_root(self) -> ts4.Address:
         return self._tip3_deployer.call_getter('getRoot')
 
-    def deploy_tip3_wallet(self, owner: ts4.Address) -> ts4.Address:
-        address = self._tip3_deployer.call_method('deployTIP3Wallet', {'owner': owner})
+    def deploy_tip3_wallet(self, owner: ts4.Address, init_value: int) -> ts4.Address:
+        address = self._tip3_deployer.call_method('deployTIP3Wallet', {
+            'owner': owner,
+            'initValue': init_value,
+        })
         ts4.dispatch_messages()
         return address

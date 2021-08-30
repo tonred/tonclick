@@ -10,4 +10,5 @@ library Fees {
     uint128 constant USER_SUBSCRIPTION_CHANGE_TIP3_PRICE_VALUE = 1 ton;
 
     uint128 constant USER_SUBSCRIPTION_EXTEND_VALUE = 1 ton;
+    uint128 constant USER_SUBSCRIPTION_CANCEL_VALUE = 1 ton;
 }

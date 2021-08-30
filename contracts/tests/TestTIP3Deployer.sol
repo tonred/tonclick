@@ -6,7 +6,6 @@ import "../tip3/RootTokenContract.sol";
 contract TestTIP3Deployer  {
     uint128 DEFAULT_TIP3_ROOT_VALUE = 3 ton;
     uint128 DEFAULT_TIP3_WALLET_VALUE = 1 ton;
-    uint128 DEFAULT_TIP3_WALLET_TOKENS = 100;
 
     address _root;
     TvmCell _root_code;
@@ -41,7 +40,7 @@ contract TestTIP3Deployer  {
         }(0, address(this));
     }
 
-    function deployTIP3Wallet(address owner) public view returns (address) {
+    function deployTIP3Wallet(address owner, uint128 initValue) public view returns (address) {
         tvm.accept();
         TvmCell stateInit = tvm.buildStateInit({
             contr: TONTokenWallet,
@@ -57,7 +56,7 @@ contract TestTIP3Deployer  {
             stateInit: stateInit,
             value: DEFAULT_TIP3_WALLET_VALUE
         }();
-        RootTokenContract(_root).mint(DEFAULT_TIP3_WALLET_TOKENS, tip_wallet);
+        RootTokenContract(_root).mint(initValue, tip_wallet);
         return tip_wallet;
     }
 

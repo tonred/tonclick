@@ -6,7 +6,7 @@ interface ISubscriptionPlanCallbacks {
     function subscribeCallback(
         address user,
         uint256 pubkey,
-        bool isFirstCallback,
+        bool firstCallback,
         bool isActivateAutoRenew
     ) external;
 

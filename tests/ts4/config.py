@@ -6,3 +6,5 @@ BUILD_ARTIFACTS_PATH = os.path.dirname(os.path.realpath(__file__)) + '/../../bui
 VERBOSE = os.getenv('TS4_VERBOSE', 'False').lower() == 'true'
 
 EMPTY_CELL = ts4.Cell(ts4.EMPTY_CELL)
+
+INIT_TIP3_VALUE = 100

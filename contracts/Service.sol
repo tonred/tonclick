@@ -152,7 +152,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         TvmCell payload
     ) internal override {
         _reserve(0);
-        (uint32 subscriptionPlanNonce, uint256 pubkey, bool isAutoRenew) = payload.toSlice()
+        (uint32 subscriptionPlanNonce, uint256 pubkey, bool autoRenew) = payload.toSlice()
             .decodeFunctionParams(buildSubscriptionPayload);
         if (msg.value < Fees.USER_SUBSCRIPTION_EXTEND_VALUE || subscriptionPlanNonce >= _subscriptionPlanNonce) {
             _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
@@ -165,16 +165,16 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         subscriptionPlan.subscribe{
             value: 0,
             flag: MsgFlag.ALL_NOT_RESERVED
-        }(tip3Root, tip3Amount, senderAddress, senderWallet, pubkey, isAutoRenew);
+        }(tip3Root, tip3Amount, senderAddress, senderWallet, pubkey, autoRenew);
     }
 
     function buildSubscriptionPayload(
         uint32 subscriptionPlanNonce,
         uint256 pubkey,
-        bool isAutoRenew
+        bool autoRenew
     ) public pure returns (TvmCell) {
         TvmBuilder builder;
-        builder.store(subscriptionPlanNonce, pubkey, isAutoRenew);
+        builder.store(subscriptionPlanNonce, pubkey, autoRenew);
         return builder.toCell();
     }
 
@@ -188,9 +188,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
         _virtualBalances[tip3Root] -= changeTip3Amount;
-        if (changeTip3Amount > 0) {
-            _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
-        }
+        _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
         senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
@@ -207,6 +205,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     function getWithdrawalParamsCallback(
         uint128 numerator,
         uint128 denominator,
+        address rootOwner,
         TvmCell payload
     ) public onlyRoot {
         _reserve(0);
@@ -217,7 +216,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         }
         uint128 feeTip3Amount = math.muldiv(tip3Amount, numerator, denominator);
         uint128 incomeTip3Amount = tip3Amount - feeTip3Amount;
-        _transferTip3TokensWithDeploy(tip3Root, _root, feeTip3Amount);
+        _transferTip3TokensWithDeploy(tip3Root, rootOwner, feeTip3Amount);
         _transferTip3TokensWithDeploy(tip3Root, _owner, incomeTip3Amount);
         _virtualBalances[tip3Root] -= tip3Amount;
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
