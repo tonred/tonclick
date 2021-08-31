@@ -11,5 +11,5 @@ library Errors {
     uint8 constant IS_NOT_TIP3_ROOT = 107;
     uint8 constant IS_NOT_TIP3_OWNER = 108;
 
-    uint8 constant SERVICE_ZERO_TIP3_TOKENS = 120;
+    uint8 constant SERVICE_ZERO_INCOME = 110;
 }

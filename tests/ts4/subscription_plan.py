@@ -19,7 +19,7 @@ class SubscriptionPlanTest(BaseTest):
         user = self.environment.create_user()
         user_subscription = self._deploy_user_subscription(user, auto_renew=False)
         self.assertEqual(user_subscription.active, True, 'Subscription must be activate')
-        self.assertEqual(user_subscription.auto_renew, False, 'Subscription must be auto renew')
+        self.assertEqual(user_subscription.auto_renew, False, 'Subscription must not be auto renew')
         self.assertEqual(self.subscription_plan.total_user_count, 1, 'Subscription must be calculated')
         self.assertEqual(self.subscription_plan.active_user_count, 0, 'Subscription must not be auto renew')
 
@@ -31,7 +31,7 @@ class SubscriptionPlanTest(BaseTest):
         # unsubscribe
         payload = self.subscription_plan.call_getter('buildUnsubscribePayload', {
             'user': user.ton_wallet.address,
-            'pubkey': user.ton_wallet.public_key_,
+            'pubkey': 0,
         })
         call_set = CallSet('unsubscribe', input={'payload': payload.raw_})
         user.ton_wallet.send_call_set(
@@ -40,7 +40,7 @@ class SubscriptionPlanTest(BaseTest):
             call_set=call_set,
         )
         self.assertEqual(user_subscription.active, True, 'Subscription must not be activated')
-        self.assertEqual(user_subscription.auto_renew, False, 'Subscription must be auto renew')
+        self.assertEqual(user_subscription.auto_renew, False, 'Subscription must not be auto renew')
         # it is active because user subscribes on certain duration,
         # so user can cancel only auto renew of subscription
 

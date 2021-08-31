@@ -5,9 +5,8 @@ interface IServiceSubscribeCallback {
     function subscribeCallback(
         uint32 subscriptionPlanNonce,
         address tip3Root,
-        address senderWallet,
-        address senderAddress,
+        address sender,
         bool success,
-        uint128 changeTip3Amount
+        uint128 changeAmount
     ) external;
 }

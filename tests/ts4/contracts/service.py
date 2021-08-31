@@ -18,9 +18,16 @@ class Service(ts4.BaseContract):
             'tip3Root': tip_root,
         })
 
-    def build_subscription_payload(self, subscription_plan_nonce: int, pubkey: int, auto_renew: bool) -> ts4.Cell:
+    def build_subscription_payload(
+            self,
+            subscription_plan_nonce: int,
+            user: ts4.Address,
+            pubkey: int,
+            auto_renew: bool
+    ) -> ts4.Cell:
         return self.call_getter('buildSubscriptionPayload', {
             'subscriptionPlanNonce': subscription_plan_nonce,
+            'user': user,
             'pubkey': pubkey,
             'autoRenew': auto_renew,
         })

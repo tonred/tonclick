@@ -116,7 +116,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     }
 
     function canSubscribe() public view returns (bool) {
-        return _active && _totalUsersCount < _data.limitCount;
+        return _active && (_data.limitCount == 0 || _totalUsersCount < _data.limitCount);
     }
 
     function isAcceptableTip3(address root, uint128 amount) public view returns (bool) {
@@ -125,22 +125,22 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
 
     function subscribe(
         address tip3Root,
-        uint128 tip3Amount,
-        address senderAddress,
-        address senderWallet,
+        uint128 amount,
+        address sender,
+        address user,
         uint256 pubkey,
         bool autoRenew
     ) public view onlyService {
         _reserve(0);
         bool success = false;
-        uint128 changeTip3Amount = tip3Amount;
-        if (canSubscribe() && isAcceptableTip3(tip3Root, tip3Amount)) {
-            uint128 tip3Price = _tip3Prices[tip3Root];
-            uint128 extendPeriods = tip3Amount / tip3Price;
-            uint32 extendDuration = uint32(extendPeriods * _data.duration);  // todo uint128 max value
-            _subscribe(senderAddress, pubkey, autoRenew, extendDuration);
+        uint128 changeAmount = amount;
+        if (canSubscribe() && isAcceptableTip3(tip3Root, amount)) {
+            uint128 price = _tip3Prices[tip3Root];
+            uint128 extendPeriods = amount / price;
+            uint32 extendDuration = uint32(math.min(2 ** 32 - 1, extendPeriods * _data.duration));
+            _subscribe(sender, user, pubkey, autoRenew, extendDuration);
             success = true;
-            changeTip3Amount = tip3Amount - extendPeriods * tip3Price;
+            changeAmount = amount - extendPeriods * price;
         }
         IServiceSubscribeCallback(_service)
             .subscribeCallback {
@@ -149,14 +149,13 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
             }(
                 _nonce,
                 tip3Root,
-                senderWallet,
-                senderAddress,
+                sender,
                 success,
-                changeTip3Amount
+                changeAmount
             );
     }
 
-    function _subscribe(address user, uint256 pubkey, bool autoRenew, uint32 extendDuration) private view {
+    function _subscribe(address sender, address user, uint256 pubkey, bool autoRenew, uint32 extendDuration) private view {
         TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
         UserSubscription userSubscription = new UserSubscription{
             stateInit : stateInit,
@@ -164,10 +163,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(autoRenew);
-        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(extendDuration, autoRenew);
+        userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(sender, extendDuration, autoRenew);
     }
 
     function subscribeCallback(
+        address sender,
         address user,
         uint256 pubkey,
         bool firstCallback,
@@ -176,7 +176,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         if (firstCallback) _totalUsersCount++;
         if (isActivateAutoRenew) _activeUsersCount++;
-        user.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+        sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
     function unsubscribe(TvmCell payload) minValue(Fees.USER_SUBSCRIPTION_CANCEL_VALUE) public view {

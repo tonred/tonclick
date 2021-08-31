@@ -17,6 +17,7 @@ import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
 
 contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue, SafeGasExecution, ITIP3Manager {
+    address ZERO_ADDRESS = address(0);
 
     uint32 static _nonce;
     address static _root;
@@ -76,6 +77,11 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
 
     function getSubscriptionPlans() public view responsible returns (address[]) {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionPlans;
+    }
+
+    function getSubscriptionPlanByIndex(uint32 index) public view responsible returns (address) {
+        require(index < _subscriptionPlans.length, Errors.IS_NOT_SUBSCRIPTION_PLAN);
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionPlans[index];
     }
 
     function getBalances() public view responsible returns (mapping(address => uint128)) {
@@ -144,6 +150,21 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         SubscriptionPlan(msg.sender).addTip3WalletsCallback{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}();
     }
 
+    function subscribeNativeTon(TvmCell payload) public minValue(Fees.USER_SUBSCRIPTION_EXTEND_VALUE) {
+        _reserve(0);
+        (uint32 subscriptionPlanNonce, address user, uint256 pubkey, bool autoRenew) = payload.toSlice()
+            .decodeFunctionParams(buildSubscriptionPayload);
+        require(subscriptionPlanNonce < _subscriptionPlanNonce, Errors.IS_NOT_SUBSCRIPTION_PLAN);
+        uint128 amount = msg.value - Fees.USER_SUBSCRIPTION_EXTEND_VALUE;
+
+        _virtualBalances[ZERO_ADDRESS] += amount;
+        SubscriptionPlan subscriptionPlan = SubscriptionPlan(_subscriptionPlans[subscriptionPlanNonce]);
+        subscriptionPlan.subscribe{
+            value: 0,
+            flag: MsgFlag.ALL_NOT_RESERVED
+        }(ZERO_ADDRESS, amount, msg.sender, user, pubkey, autoRenew);
+    }
+
     function _onTip3TokensReceived(
         address tip3Root,
         uint128 tip3Amount,
@@ -152,10 +173,10 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         TvmCell payload
     ) internal override {
         _reserve(0);
-        (uint32 subscriptionPlanNonce, uint256 pubkey, bool autoRenew) = payload.toSlice()
+        (uint32 subscriptionPlanNonce, address user, uint256 pubkey, bool autoRenew) = payload.toSlice()
             .decodeFunctionParams(buildSubscriptionPayload);
         if (msg.value < Fees.USER_SUBSCRIPTION_EXTEND_VALUE || subscriptionPlanNonce >= _subscriptionPlanNonce) {
-            _transferTip3Tokens(tip3Root, senderWallet, tip3Amount);
+            _transferTip3(tip3Root, senderWallet, tip3Amount);
             senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
             return;
         }
@@ -165,39 +186,47 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         subscriptionPlan.subscribe{
             value: 0,
             flag: MsgFlag.ALL_NOT_RESERVED
-        }(tip3Root, tip3Amount, senderAddress, senderWallet, pubkey, autoRenew);
+        }(tip3Root, tip3Amount, senderAddress, user, pubkey, autoRenew);
     }
 
     function buildSubscriptionPayload(
         uint32 subscriptionPlanNonce,
+        address user,
         uint256 pubkey,
         bool autoRenew
     ) public pure returns (TvmCell) {
         TvmBuilder builder;
-        builder.store(subscriptionPlanNonce, pubkey, autoRenew);
+        builder.store(subscriptionPlanNonce, user, pubkey, autoRenew);
         return builder.toCell();
     }
 
     function subscribeCallback(
         uint32 subscriptionPlanNonce,
         address tip3Root,
-        address senderWallet,
-        address senderAddress,
+        address sender,
         bool /*success*/,
-        uint128 changeTip3Amount
+        uint128 changeAmount
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
-        _virtualBalances[tip3Root] -= changeTip3Amount;
-        _transferTip3Tokens(tip3Root, senderWallet, changeTip3Amount);
-        senderAddress.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+        _virtualBalances[tip3Root] -= changeAmount;
+        if (tip3Root == ZERO_ADDRESS) {
+            sender.transfer({value: changeAmount, bounce: false});  // ton
+        } else {
+            _transferTip3ToRecipient(tip3Root, sender, changeAmount);  // tip3
+        }
+        sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+    }
+
+    function withdrawalTonIncome() public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {
+        withdrawalTip3Income(ZERO_ADDRESS);
     }
 
     function withdrawalTip3Income(address tip3Root) public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {
         _reserve(0);
-        uint128 tip3Amount = getOneBalance(tip3Root);
-        require(tip3Amount > 0, Errors.SERVICE_ZERO_TIP3_TOKENS);
+        uint128 amount = getOneBalance(tip3Root);
+        require(amount > 0, Errors.SERVICE_ZERO_INCOME);
         TvmBuilder builder;
-        builder.store(tip3Root, tip3Amount);
+        builder.store(tip3Root, amount);
         TvmCell payload = builder.toCell();
         IRootWithdrawal(_root).getWithdrawalParams{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(payload);
     }
@@ -209,16 +238,21 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         TvmCell payload
     ) public onlyRoot {
         _reserve(0);
-        (address tip3Root, uint128 tip3Amount) = payload.toSlice().decode(address, uint128);
-        if (_virtualBalances[tip3Root] < tip3Amount) {  // owner tries to make double transfer of income
+        (address tip3Root, uint128 amount) = payload.toSlice().decode(address, uint128);
+        if (_virtualBalances[tip3Root] < amount) {  // owner tries to make double transfer of income
             _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
             tvm.exit();
         }
-        uint128 feeTip3Amount = math.muldiv(tip3Amount, numerator, denominator);
-        uint128 incomeTip3Amount = tip3Amount - feeTip3Amount;
-        _transferTip3TokensWithDeploy(tip3Root, rootOwner, feeTip3Amount);
-        _transferTip3TokensWithDeploy(tip3Root, _owner, incomeTip3Amount);
-        _virtualBalances[tip3Root] -= tip3Amount;
+        uint128 feeAmount = math.muldiv(amount, numerator, denominator);
+        uint128 incomeAmount = amount - feeAmount;
+        if (tip3Root == ZERO_ADDRESS) {  // withdrawal ton
+            rootOwner.transfer({value: feeAmount, bounce: false});
+            _owner.transfer({value: incomeAmount, bounce: false});
+        } else {  // withdrawal tip3
+            _transferTip3ToRecipient(tip3Root, rootOwner, feeAmount);
+            _transferTip3ToRecipient(tip3Root, _owner, incomeAmount);
+        }
+        _virtualBalances[tip3Root] -= amount;
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
     }
 

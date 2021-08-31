@@ -44,6 +44,14 @@ contract UserSubscription is SafeGasExecution {
      * GETTERS *
      ***********/
 
+    function getUser() public view responsible returns (address) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _user;
+    }
+
+    function getPubkey() public view responsible returns (uint256) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _pubkey;
+    }
+
 
     /***********
      * METHODS *
@@ -61,7 +69,7 @@ contract UserSubscription is SafeGasExecution {
         return _finishTime;
     }
 
-    function extend(uint32 extendDuration, bool autoRenew) public onlySubscriptionPlan {
+    function extend(address sender, uint32 extendDuration, bool autoRenew) public onlySubscriptionPlan {
         _reserve(0);
         bool isActivateAutoRenew = (!_autoRenew || _firstCallback) && autoRenew;
         _autoRenew = autoRenew;
@@ -71,6 +79,7 @@ contract UserSubscription is SafeGasExecution {
                 value: 0,
                 flag: MsgFlag.ALL_NOT_RESERVED
             }(
+                sender,
                 _user,
                 _pubkey,
                 _firstCallback,
