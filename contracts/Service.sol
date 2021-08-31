@@ -99,6 +99,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      ***********/
 
     function createSubscriptionPlan(
+        uint128 tonPrice,
         mapping(address => uint128) tip3Prices,
         string title,
         uint32 duration,
@@ -107,6 +108,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint64 limitCount
     ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
         _reserve(0);
+        tip3Prices[ZERO_ADDRESS] = tonPrice;
         SubscriptionPlanData data = SubscriptionPlanData(title, duration, description, termUrl, limitCount);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
         IRootCreateSubscriptionPlan(_root)
@@ -125,22 +127,22 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
 
     function onSubscriptionPlanCreated(
         address subscriptionPlan,
-        mapping(address => uint128) tip3Prices
+        mapping(address => uint128) prices
     ) public onlyRoot {
         _reserve(0);
-        _deployTip3Wallets(tip3Prices);
+        _deployTip3Wallets(prices);
         _subscriptionPlans.push(subscriptionPlan);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
     }
 
-    function _deployTip3Wallets(mapping(address => uint128) tip3Prices) private {
-        optional(address, uint128) pair = tip3Prices.min();
+    function _deployTip3Wallets(mapping(address => uint128) prices) private {
+        optional(address, uint128) pair = prices.min();
         while (pair.hasValue()) {
             (address root, uint128 price) = pair.get();
-            if (price > 0) {
+            if (root != ZERO_ADDRESS && price > 0) {
                 _addTip3Wallet(root);
             }
-            pair = tip3Prices.next(root);
+            pair = prices.next(root);
         }
     }
 

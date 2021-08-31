@@ -13,14 +13,16 @@ import "./utils/SafeGasExecution.sol";
 
 
 contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecution {
+    address ZERO_ADDRESS = address(0);
 
     uint32 static _nonce;
     address static _owner;
     address static _root;
     address static _service;
 
+
     SubscriptionPlanData _data;
-    mapping(address /*root*/ => uint128 /*price*/) _tip3Prices;
+    mapping(address /*root*/ => uint128 /*price*/) _prices;
     TvmCell _userSubscriptionCode;
 
     bool _active;
@@ -60,11 +62,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
 
     constructor(
         SubscriptionPlanData data,
-        mapping(address /*root*/ => uint128 /*price*/) tip3Prices,
+        mapping(address /*root*/ => uint128 /*price*/) prices,
         TvmCell userSubscriptionCode
     ) public onlyRoot {
         _data = data;
-        _tip3Prices = tip3Prices;
+        _prices = prices;
         _userSubscriptionCode = userSubscriptionCode;
         _active = true;
         keepBalance(Balances.SUBSCRIPTION_PLAN_BALANCE);
@@ -79,8 +81,21 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _data;
     }
 
+    function getTonPrice() public view responsible returns (optional(uint128)) {
+        optional(uint128) tonPrice;
+        if (_prices.exists(ZERO_ADDRESS))
+            tonPrice = _prices[ZERO_ADDRESS];
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} tonPrice;
+    }
+
     function getTip3Prices() public view responsible returns (mapping(address /*root*/ => uint128 /*price*/)) {
-        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _tip3Prices;
+        if (_prices.exists(ZERO_ADDRESS)) {
+            mapping(address => uint128) tip3Prices = _prices;
+            delete tip3Prices[ZERO_ADDRESS];
+            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} tip3Prices;
+        } else {
+            return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _prices;
+        }
     }
 
     function getTotalUsersCount() public view responsible returns (uint64) {
@@ -104,9 +119,16 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _active = false;
     }
 
+    function changeTonPrice(uint128 price) public onlyOwner safeGasModifier {
+        _prices[ZERO_ADDRESS] = price;
+    }
 
-    function changeTip3Prices(mapping(address => uint128) tip3Prices) public view onlyOwner minValue(Fees.USER_SUBSCRIPTION_CHANGE_TIP3_PRICE_VALUE) {
+    function changeTip3Prices(mapping(address => uint128) tip3Prices) public onlyOwner minValue(Fees.USER_SUBSCRIPTION_CHANGE_TIP3_PRICE_VALUE) {
         _reserve(0);
+        optional(uint128) tonPrice = getTonPrice();
+        _prices = tip3Prices;
+        if (tonPrice.hasValue())
+            changeTonPrice(tonPrice.get());
         IServiceAddTip3Wallets(_service).addTip3Wallets{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}(_nonce, tip3Prices);
     }
 
@@ -119,10 +141,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return _active && (_data.limitCount == 0 || _totalUsersCount < _data.limitCount);
     }
 
-    function isAcceptableTip3(address root, uint128 amount) public view returns (bool) {
-        return _tip3Prices.exists(root) && amount >= _tip3Prices[root];
+    function isAcceptableToken(address root, uint128 amount) public view returns (bool) {
+        return _prices.exists(root) && amount >= _prices[root];
     }
 
+    // called from service
     function subscribe(
         address tip3Root,
         uint128 amount,
@@ -134,8 +157,8 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         bool success = false;
         uint128 changeAmount = amount;
-        if (canSubscribe() && isAcceptableTip3(tip3Root, amount)) {
-            uint128 price = _tip3Prices[tip3Root];
+        if (canSubscribe() && isAcceptableToken(tip3Root, amount)) {
+            uint128 price = _prices[tip3Root];
             uint128 extendPeriods = amount / price;
             uint32 extendDuration = uint32(math.min(2 ** 32 - 1, extendPeriods * _data.duration));
             _subscribe(sender, user, pubkey, autoRenew, extendDuration);
@@ -166,6 +189,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(sender, extendDuration, autoRenew);
     }
 
+    // called from user subscription
     function subscribeCallback(
         address sender,
         address user,
@@ -186,6 +210,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}();
     }
 
+    // called from user subscription
     function unsubscribeCallback(
         address user,
         uint256 pubkey,

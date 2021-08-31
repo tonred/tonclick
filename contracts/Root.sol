@@ -46,6 +46,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         _;
     }
 
+
     /***************
      * CONSTRUCTOR *
      ***************/
@@ -105,6 +106,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         });
     }
 
+    // called from service
     function createSubscriptionPlan(
         uint32 serviceNonce,  // todo use TvmCell
         uint32 subscriptionPlanNonce,

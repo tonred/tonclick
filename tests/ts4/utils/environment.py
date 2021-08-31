@@ -18,6 +18,7 @@ class Environment:
     SERVICE_URL = 'https://ton.red'
 
     SUBSCRIPTION_PLAN_TIP3_PRICE = 5
+    SUBSCRIPTION_PLAN_TON_PRICE = 5 * ts4.GRAM
     SUBSCRIPTION_PLAN_TITLE = 'Premium'
     SUBSCRIPTION_PLAN_DURATION = 120
     SUBSCRIPTION_PLAN_DESCRIPTION = 'Limited 120 second Premium subscription, only today!'
@@ -75,6 +76,7 @@ class Environment:
     def _deploy_subscription_plan(self) -> SubscriptionPlan:
         tip3_root = self.tip3_helper.tip3_root.str()
         call_set = CallSet('createSubscriptionPlan', input={
+            'tonPrice': self.SUBSCRIPTION_PLAN_TON_PRICE,
             'tip3Prices': {tip3_root: self.SUBSCRIPTION_PLAN_TIP3_PRICE},
             'title': self.SUBSCRIPTION_PLAN_TITLE,
             'duration': self.SUBSCRIPTION_PLAN_DURATION,
@@ -99,6 +101,21 @@ class Environment:
             auto_renew=auto_renew,
         )
         user.transfer_tip3(self.service.address, value, Fees.USER_SUBSCRIPTION_EXTEND_VALUE, payload=payload)
+        address = self.subscription_plan.get_user_subscription(
+            user=user.ton_wallet.address,
+            pubkey=0,
+        )
+        return UserSubscription(address)
+
+    def deploy_user_subscription_via_ton(self, user: User, value: int, auto_renew: bool = True) -> UserSubscription:
+        payload = self.service.build_subscription_payload(
+            subscription_plan_nonce=0,
+            user=user.ton_wallet.address,
+            pubkey=0,
+            auto_renew=auto_renew,
+        )
+        call_set = CallSet('subscribeNativeTon', input={'payload': payload.raw_})
+        user.ton_wallet.send_call_set(self.service, value, call_set)
         address = self.subscription_plan.get_user_subscription(
             user=user.ton_wallet.address,
             pubkey=0,

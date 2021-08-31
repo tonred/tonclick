@@ -3,7 +3,7 @@ pragma ton-solidity >=0.39.0;
 import "../tip3/RootTokenContract.sol";
 
 
-contract TestTIP3Deployer  {
+contract TestTIP3Deployer {
     uint128 DEFAULT_TIP3_ROOT_VALUE = 3 ton;
     uint128 DEFAULT_TIP3_WALLET_VALUE = 1 ton;
 

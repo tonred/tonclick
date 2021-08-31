@@ -24,7 +24,7 @@ class User:
             self,
             destination: ts4.Address,
             value: int,
-            grams: int,
+            ton_value: int,
             payload:
             ts4.Cell = EMPTY_CELL,
             expect_ec: int = 0
@@ -34,7 +34,7 @@ class User:
             'recipient_address': destination.str(),
             'tokens': value,
             'deploy_grams': 0,
-            'transfer_grams': grams,
+            'transfer_grams': 0,
             'send_gas_to': self.ton_wallet.address.str(),
             'notify_receiver': True,
             'payload': payload.raw_,
@@ -42,7 +42,7 @@ class User:
         abi = self._load_tip3_wallet_abi()
         self.ton_wallet.send_call_set_custom(
             self.tip3_wallet.address,
-            1 * ts4.GRAM,
+            value=ton_value,
             call_set=call_set,
             abi=abi,
             expect_ec=expect_ec,
