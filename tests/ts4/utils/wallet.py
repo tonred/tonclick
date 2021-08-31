@@ -10,11 +10,11 @@ from utils.utils import random_address
 
 class Wallet(ts4.BaseContract):
 
-    def __init__(self):
+    def __init__(self, wallet_contract: str = 'Wallet'):
         super().__init__(
-            'Wallet',
+            wallet_contract,
             {},
-            nickname='Wallet',
+            nickname=wallet_contract,
             override_address=random_address(),
             keypair=ts4.make_keypair(),
         )

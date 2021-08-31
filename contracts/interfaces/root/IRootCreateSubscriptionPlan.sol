@@ -5,7 +5,7 @@ import "../../structs/SubscriptionPlanData.sol";
 
 interface IRootCreateSubscriptionPlan {
     function createSubscriptionPlan(
-        uint32 serviceNonce,  // todo use TvmCell
+        uint32 serviceNonce,
         uint32 subscriptionPlanNonce,
         address owner,
         address service,

@@ -18,4 +18,5 @@ class SubscriptionPlan(ts4.BaseContract):
         return self.call_getter('getUserSubscription', {
             'user': user,
             'pubkey': pubkey,
+            'answerId': 0,
         })

@@ -107,6 +107,7 @@ class Environment:
         )
         return UserSubscription(address)
 
+    # dont forget about `fee` when pass a value
     def deploy_user_subscription_via_ton(self, user: User, value: int, auto_renew: bool = True) -> UserSubscription:
         payload = self.service.build_subscription_payload(
             subscription_plan_nonce=0,

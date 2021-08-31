@@ -227,9 +227,14 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return builder.toCell();
     }
 
-    function getUserSubscription(address user, uint256 pubkey) public view returns (address) {
+    function getUserSubscription(address user, uint256 pubkey) public view responsible returns (address) {
         TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
-        return _calcAddress(stateInit);
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _calcAddress(stateInit);
+    }
+
+    function getUserSubscriptionWithPayload(address user, uint256 pubkey, TvmCell payload) public view responsible returns (address, TvmCell) {
+        address userSubscription = getUserSubscription(user, pubkey);
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (userSubscription, payload);
     }
 
     function _buildUserSubscriptionStateInit(address user, uint256 pubkey) private view returns (TvmCell) {

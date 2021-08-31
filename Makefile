@@ -10,6 +10,16 @@ compile:
 deploy:
 	locklift run -s scripts/deploy-root.js --config locklift.config.js --network local --disable-build
 
-test:
+test: test-contracts test-onchain-demo
+
+test-contracts:
+	$(call unittest-execute,test_contacts,TestContacts)
+
+test-onchain-demo:
+	$(call unittest-execute,test_onchain_demo,TestOnchainDemo)
+
+define unittest-execute
+	@echo "Testing $(2)"
 	cd tests/ts4 && \
-		python3 -m unittest tests.Tests
+		python3 -m unittest $(1).$(2)
+endef

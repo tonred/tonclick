@@ -17,7 +17,7 @@ import "../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
 import "../node_modules/@broxus/contracts/contracts/access/InternalOwner.sol";
 
 
-contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGasExecution,  RandomNonce /*, InternalOwner*/ {
+contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGasExecution, RandomNonce /*, InternalOwner*/ {
 
     address _owner;
     uint32 _serviceNonce;
@@ -108,7 +108,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
 
     // called from service
     function createSubscriptionPlan(
-        uint32 serviceNonce,  // todo use TvmCell
+        uint32 serviceNonce,  // todo maybe use TvmCell
         uint32 subscriptionPlanNonce,
         address owner,
         address service,

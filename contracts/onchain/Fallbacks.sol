@@ -1,0 +1,8 @@
+pragma ton-solidity >= 0.47.0;
+
+enum Fallbacks {
+    NOT_ENOUGH_TOKENS,
+    UNSUPPORTED_SUBSCRIPTION_PLAN,
+    SUBSCRIPTION_IS_NOT_EXISTS,
+    SUBSCRIPTION_IS_EXPIRED
+}

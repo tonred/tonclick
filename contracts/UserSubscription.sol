@@ -57,16 +57,16 @@ contract UserSubscription is SafeGasExecution {
      * METHODS *
      ***********/
 
-    function isAutoRenew() public view returns (bool) {
-        return _autoRenew;
+    function isAutoRenew() public view responsible returns (bool) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _autoRenew;
     }
 
-    function isActive() public view returns (bool) {
-        return now <= _finishTime;
+    function isActive() public view responsible returns (bool) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} now <= _finishTime;
     }
 
-    function getFinishTime() public view returns (uint32) {
-        return _finishTime;
+    function getFinishTime() public view responsible returns (uint32) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _finishTime;
     }
 
     function extend(address sender, uint32 extendDuration, bool autoRenew) public onlySubscriptionPlan {

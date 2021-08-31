@@ -11,7 +11,7 @@ from utils.libraries import Fees, Balances
 from utils.user import User
 
 
-class Tests(unittest.TestCase):
+class TestContacts(unittest.TestCase):
 
     def setUp(self):
         self.environment = Environment()
