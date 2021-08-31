@@ -1,3 +1,11 @@
+help:
+	@echo "[*] setup - setup environment"
+	@echo "[*] compile - compile all contracts"
+	@echo "[*] deploy - deploy root"
+	@echo "[*] test - test all contracts"
+	@echo "[*]   test-contracts - test only contracts"
+	@echo "[*]   test-onchain-demo - test only onchain demo"
+
 setup:
 	cp example.locklift.config.js locklift.config.js
 	npm install -g locklift
