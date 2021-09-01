@@ -6,11 +6,11 @@ Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
 Off-chain demo site: https://demo.ton.click/static/
 
-Root address in devnet: `todo`
+Root address in devnet: `0:61688335efeaffefc7b855e4e814dd6c7a2e768ebdf3bf0eef45004ce166c791`
 
-DeBot for Service address in devnet: `todo`
+DeBot for Service address in devnet: `0:3a4dfa2c931767f706b1a94a22699117bc8ea361a60f2ff3bccc70cd3827c456`
 
-DeBot for Users address in devnet: `todo`
+DeBot for User address in devnet: `0:a8d4f71427003c3e75d5047003da399da2809450d7c783f5311d2837de324425`
 
 Push request: `todo`
 
