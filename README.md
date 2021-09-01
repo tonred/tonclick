@@ -48,7 +48,7 @@ make compile
 make tests
 ```
 
-Vew all make instructions:
+View all make instructions:
 ```shell
 make help
 ```
@@ -63,9 +63,9 @@ make deploy
 
 ## On-chain and off-chain usage
 
-To subscribe on-chain, user should pass only address, and set pubkey to 0
+To subscribe on-chain, user should pass only address and set pubkey to 0
 
-To subscribe on-chain, user should pass only pubkey, and set address to 0
+To subscribe on-chain, user should pass only pubkey and set address to 0
 
 Also, this should be used if user want to see all his subscription via user profile
 
@@ -105,6 +105,7 @@ He must not remember if subscription already exists.
 If user want to subscribe, he should create a `payload` in service
 via `buildSubscriptionPayload` function, and then pass this payload
 depends on payment method.
+
 **Pass only `user` or `pubkey` value** [see more here](#on-chain-and-off-chain-usage),
 set `autoRenew` if you need reminds for renewal.
 If user wants to pay via TIP3 tokens, he should transfer this right amount of tokens
