@@ -61,4 +61,4 @@ class User:
 
     @property
     def tip3_balance(self) -> int:
-        return self.tip3_wallet.call_getter('balance', {'answerId': 0})
+        return self.tip3_wallet.call_getter('balance', {'_answer_id': 0})

@@ -8,8 +8,8 @@ class UserProfile(ts4.BaseContract):
 
     @property
     def count_subscriptions(self) -> int:
-        return self.call_getter('getSubscriptionsCount', {'answerId': 0})
+        return self.call_getter('getSubscriptionsCount', {'_answer_id': 0})
 
     @property
     def subscriptions(self) -> list[ts4.Address]:
-        return self.call_getter('getSubscriptions', {'answerId': 0})
+        return self.call_getter('getSubscriptions', {'_answer_id': 0})

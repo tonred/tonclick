@@ -14,16 +14,16 @@ from utils.utils import random_address
 
 
 class Environment:
-    SERVICE_TITLE = 'TON RED'
-    SERVICE_DESCRIPTION = 'First service ever!'
-    SERVICE_URL = 'https://ton.red'
+    SERVICE_TITLE = 'TON RED'.encode().hex()
+    SERVICE_DESCRIPTION = 'First service ever!'.encode().hex()
+    SERVICE_URL = 'https://ton.red'.encode().hex()
 
     SUBSCRIPTION_PLAN_TIP3_PRICE = 5
     SUBSCRIPTION_PLAN_TON_PRICE = 5 * ts4.GRAM
-    SUBSCRIPTION_PLAN_TITLE = 'Premium'
+    SUBSCRIPTION_PLAN_TITLE = 'Premium'.encode().hex()
     SUBSCRIPTION_PLAN_DURATION = 120
-    SUBSCRIPTION_PLAN_DESCRIPTION = 'Limited 120 second Premium subscription, only today!'
-    SUBSCRIPTION_PLAN_TERM_URL = 'https://ton.red/terms'
+    SUBSCRIPTION_PLAN_DESCRIPTION = 'Limited 120 second Premium subscription, only today!'.encode().hex()
+    SUBSCRIPTION_PLAN_TERM_URL = 'https://ton.red/terms'.encode().hex()
     SUBSCRIPTION_PLAN_LIMIT_COUNT = 10
 
     def __init__(self):
@@ -81,10 +81,11 @@ class Environment:
         service_owner = service_owner or self.service_owner
         service = service or self.service
         tip3_root = self.tip3_helper.tip3_root.str()
+        ton_root_address = ts4.Address('0:' + '0' * 64).str()
         call_set = CallSet('createSubscriptionPlan', input={
             'tip3Prices': {
                 tip3_root: self.SUBSCRIPTION_PLAN_TIP3_PRICE,
-                ts4.Address('0:' + '0'*64): self.SUBSCRIPTION_PLAN_TON_PRICE
+                ton_root_address: self.SUBSCRIPTION_PLAN_TON_PRICE,
             },
             'title': self.SUBSCRIPTION_PLAN_TITLE,
             'duration': self.SUBSCRIPTION_PLAN_DURATION,
@@ -144,6 +145,6 @@ class Environment:
         address = self.root.call_getter('getUserProfile', {
             'user': user.ton_wallet.address,
             'pubkey': 0,
-            'answerId': 0,
+            '_answer_id': 0,
         })
         return UserProfile(address)

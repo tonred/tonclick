@@ -8,16 +8,16 @@ class SubscriptionPlan(ts4.BaseContract):
 
     @property
     def total_user_count(self) -> int:
-        return self.call_getter('getTotalUsersCount', {'answerId': 0})
+        return self.call_getter('getTotalUsersCount', {'_answer_id': 0})
 
     @property
     def active_user_count(self) -> int:
-        return self.call_getter('getActiveUsersCount', {'answerId': 0})
+        return self.call_getter('getActiveUsersCount', {'_answer_id': 0})
 
     def get_user_subscription(self, user: ts4.Address, pubkey: int) -> ts4.Address:
         return self.call_getter('getUserSubscription', {
             'user': user,
             'pubkey': pubkey,
             'root': self.address,
-            'answerId': 0,
+            '_answer_id': 0,
         })

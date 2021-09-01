@@ -19,7 +19,7 @@ class Root(ts4.BaseContract):
 
     @property
     def withdrawal_fee(self) -> (int, int):
-        return self.call_getter('getWithdrawalFee', {'answerId': 0})
+        return self.call_getter('getWithdrawalFee', {'_answer_id': 0})
 
     def set_withdrawal_fee(self, root_owner: User, numerator: int, denominator: int):
         call_set = CallSet('setWithdrawalFee', input={

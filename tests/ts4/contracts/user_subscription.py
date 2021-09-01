@@ -8,8 +8,8 @@ class UserSubscription(ts4.BaseContract):
 
     @property
     def active(self) -> bool:
-        return self.call_getter('isActive', {'answerId': 0})
+        return self.call_getter('isActive', {'_answer_id': 0})
 
     @property
     def auto_renew(self) -> bool:
-        return self.call_getter('isAutoRenew', {'answerId': 0})
+        return self.call_getter('isAutoRenew', {'_answer_id': 0})
