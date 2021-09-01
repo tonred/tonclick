@@ -1,7 +1,7 @@
 help:
 	@echo "[*] setup - setup environment"
 	@echo "[*] compile - compile all contracts"
-	@echo "[*] deploy - deploy root"
+	@echo "[*] deploy-root - deploy root"
 	@echo "[*] test - test all contracts"
 	@echo "[*]   test-contracts - test only contracts"
 	@echo "[*]   test-onchain-demo - test only onchain demo"
@@ -16,8 +16,16 @@ compile:
 	export TVM_LINKER_LIB_PATH=/Users/abionics/TON/Compilation/TON-Solidity-Compiler/lib/stdlib_sol.tvm && \
 		locklift build --config locklift.config.js
 
-deploy:
+deploy: deploy-root deploy-signchecker
+
+deploy-root:
 	locklift run -s scripts/deploy-root.js --config locklift.config.js --network local --disable-build
+
+deploy-debot:
+	locklift run -s scripts/deploy-debot.js --config locklift.config.js --network local --disable-build
+
+deploy-signchecker:
+	locklift run -s scripts/deploy-signchecker.js --config locklift.config.js --network local --disable-build
 
 test: test-contracts test-onchain-demo
 
