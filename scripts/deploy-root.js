@@ -21,6 +21,7 @@ async function main() {
   const Service = await locklift.factory.getContract('Service');
   const SubscriptionPlan = await locklift.factory.getContract('SubscriptionPlan');
   const UserSubscription = await locklift.factory.getContract('UserSubscription');
+  const UserProfile = await locklift.factory.getContract('UserProfile');
 
   const root = await locklift.giver.deployContract({
     contract: Root,
@@ -28,7 +29,8 @@ async function main() {
       owner,
       serviceCode: Service.code,
       subscriptionPlanCode: SubscriptionPlan.code,
-      userSubscriptionCode: UserSubscription.code
+      userSubscriptionCode: UserSubscription.code,
+      userProfileCode: UserProfile.code,
     },
     initParams:{
       // _randomNonce: 0
