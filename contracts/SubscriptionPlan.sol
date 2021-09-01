@@ -244,6 +244,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     function unsubscribe(TvmCell payload) minValue(Fees.USER_SUBSCRIPTION_CANCEL_VALUE) public view {
         _reserve(0);
         (address user, uint256 pubkey) = payload.toSlice().decodeFunctionParams(buildUnsubscribePayload);
+        require(msg.sender == user && pubkey == 0, Errors.IS_NOT_OWNER);
         address userSubscription = getUserSubscription(user, pubkey, address(this));
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}(msg.sender);
     }
