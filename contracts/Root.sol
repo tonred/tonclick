@@ -111,6 +111,14 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
      * METHODS *
      ***********/
 
+    /*
+    Creates new service
+    @param owner             address of service owner
+    @param title             title of service
+    @param description       description of service
+    @param url               link to service site
+    @value must more or equal to `Fees.CREATE_SERVICE_VALUE`
+    */
     function createService(
         address owner,
         string title,

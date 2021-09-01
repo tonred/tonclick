@@ -1,4 +1,4 @@
-pragma ton-solidity >=0.39.0;
+pragma ton-solidity >= 0.39.0;
 
 import "../tip3/RootTokenContract.sol";
 import "../../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";

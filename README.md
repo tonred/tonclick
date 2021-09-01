@@ -92,12 +92,11 @@ Subscription plan can have max count of subscribers
 
 ```solidity
 function createSubscriptionPlan(
-    uint128 tonPrice,  // price in Ton, use 0 to disable payment in Ton
-    mapping(address => uint128) tip3Prices,  // mapping of root=>amount TIP3 prices
+    mapping(address /*root*/ => uint128 /*amount*/) tip3Prices,  // mapping TIP3 prices, use address(0) for native Ton price
     string title,  // title info
     uint32 duration,  // duration info in seconds
     string description,  // description info
-    string termUrl,  // link to subscription plan terms
+    string termUrl,  // link to usage terms
     uint64 limitCount  // max count of subscribers, use 0 for unlimited
 )
 ```
@@ -127,8 +126,8 @@ function subscribeNativeTon(TvmCell payload)
 ```
 
 User can unsubscribe from plan in any time. Unsubscription means that user don't want to
-renew this plan anymore, but subscription will be active until plan `period` will be ended
-because user already paid for all this `perion`. To unsubscribe user should build `payload`
+renew this plan anymore, but subscription will be active until plan `duration` will be ended
+because user already paid for all this `duration`. To unsubscribe user should build `payload`
 via `buildUnsubscribePayload` in subscription plan and pass it to `unsubscribe`
 
 ```solidity
@@ -160,9 +159,9 @@ function withdrawalTip3Income(address tip3Root)
 
 ## Diagrams
 
-![deploy-service-diagram.png](docs/diagram-deploy-service.png)
-![deploy-plan-diagram.png](docs/diagram-deploy-plan.png)
-![subscribe-native-ton-diagram.png](docs/diagram-subscribe-native-ton.png)
+![diagram-deploy-service.png](docs/diagram-deploy-service.png)
+![diagram-deploy-subscription-plan.png](docs/diagram-deploy-subscription-plan.png)
+![diagram-subscribe-native-ton.png](docs/diagram-subscribe-native-ton.png)
 
 
 ## Tests
@@ -179,6 +178,7 @@ Test is written on python using `unittest` library
 
 
 ## Off-chain demo
+
 Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
 Off-chain demo site: https://demo.ton.click/
@@ -192,9 +192,9 @@ Off-chain demo site: https://demo.ton.click/
 6. Checks if user with such public key has active matching subscriptions
 5. Service grants JWT token to user via websockets, which will provide access to the private methods of service API 
 
-
 **Important:** for off-chain plans user subscriptions must be created only by user pubkey
 
+![off-chain-demo.png](docs/off-chain-demo.png)
 
 ## On-chain demo
 

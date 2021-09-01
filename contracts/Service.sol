@@ -135,8 +135,18 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      * METHODS *
      ***********/
 
+    /*
+    Creates new subscription plan
+    @param tip3Prices     mapping TIP3 prices, use address(0) for native Ton price
+    @param title          title of plan
+    @param duration       duration of plan in seconds
+    @param description    description of plan
+    @param termUrl        link to plan usage terms
+    @param limitCount     max count of subscribers, use 0 for unlimited
+    @value must more or equal to `Fees.CREATE_SERVICE_VALUE`
+    */
     function createSubscriptionPlan(
-        mapping(address => uint128) tip3Prices,
+        mapping(address /*root*/ => uint128 /*amount*/) tip3Prices,
         string title,
         uint32 duration,
         string description,
@@ -189,6 +199,11 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         SubscriptionPlan(msg.sender).addTip3WalletsCallback{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}();
     }
 
+    /*
+    Subscribes via native Ton token
+    @param payload     payload built via `buildSubscriptionPayload`
+    @value must more or equal to `Fees.USER_SUBSCRIPTION_EXTEND_VALUE`
+    */
     function subscribeNativeTon(TvmCell payload) public minValue(Fees.USER_SUBSCRIPTION_EXTEND_VALUE) {
         _reserve(getTonBalance());
         (uint32 subscriptionPlanNonce, address user, uint256 pubkey, bool autoRenew) = payload.toSlice()
@@ -204,6 +219,8 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         }(ZERO_ADDRESS, amount, msg.sender, user, pubkey, autoRenew);
     }
 
+    // Subscribes via TIP3 token
+    // After receiving TIP3 tokens on TIP3 wallet
     function _onTip3TokensReceived(
         address tip3Root,
         uint128 tip3Amount,
@@ -228,6 +245,13 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         }(tip3Root, tip3Amount, senderAddress, user, pubkey, autoRenew);
     }
 
+    /*
+    Builds payload for subscription [pure]
+    @param subscriptionPlanNonce     nonce of subscription plan
+    @param user                      address of user for on-chain, address(0) for off-chain
+    @param pubkey                    pubkey of user for off-chain, 0 for on-chain
+    @param autoRenew                 auto renew this plan
+    */
     function buildSubscriptionPayload(
         uint32 subscriptionPlanNonce,
         address user,

@@ -241,6 +241,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
+    /*
+    Unsubscribes from this plan
+    @param payload     payload built via `buildUnsubscribePayload`
+    @value must more or equal to `Fees.USER_SUBSCRIPTION_CANCEL_VALUE`
+    */
     function unsubscribe(TvmCell payload) minValue(Fees.USER_SUBSCRIPTION_CANCEL_VALUE) public view {
         _reserve(0);
         (address user, uint256 pubkey) = payload.toSlice().decodeFunctionParams(buildUnsubscribePayload);
@@ -249,6 +254,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}(msg.sender);
     }
 
+    /*
+    Builds payload for unsubscription [pure]
+    @param user      address of user for on-chain, address(0) for off-chain
+    @param pubkey    pubkey of user for off-chain, 0 for on-chain
+    */
     function buildUnsubscribePayload(address user, uint256 pubkey) public pure returns (TvmCell) {
         require(user == address(0) || pubkey == 0);
         TvmBuilder builder;

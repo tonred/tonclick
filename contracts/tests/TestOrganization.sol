@@ -1,4 +1,4 @@
-pragma ton-solidity >=0.39.0;
+pragma ton-solidity >= 0.39.0;
 
 import "../Root.sol";
 import "../interfaces/root/ICreateServiceCallback.sol";
