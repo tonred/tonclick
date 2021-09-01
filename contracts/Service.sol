@@ -218,11 +218,13 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         address userSubscription
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(getTonBalance());
-        _virtualBalances[tip3Root] -= changeAmount;
-        if (tip3Root == ZERO_ADDRESS) {
-            sender.transfer({value: changeAmount, bounce: false});  // ton
-        } else {
-            _transferTip3ToRecipient(tip3Root, sender, changeAmount);  // tip3
+        if (changeAmount > 0) {
+            _virtualBalances[tip3Root] -= changeAmount;
+            if (tip3Root == ZERO_ADDRESS) {
+                sender.transfer({value: changeAmount, bounce: false});  // ton
+            } else {
+                _transferTip3ToRecipient(tip3Root, sender, changeAmount);  // tip3
+            }
         }
         if (userSubscription != ZERO_ADDRESS) {
             IRootOnUserSubscription(_root)
@@ -230,8 +232,8 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
                     value: 2 * Balances.USER_PROFILE_BALANCE,  // for `constructor` and `addSubscription`
                     flag: MsgFlag.SENDER_PAYS_FEES
                 }(_nonce, userSubscription, sender, user, pubkey);
-            sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
         }
+        sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
     function withdrawalTonIncome() public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {

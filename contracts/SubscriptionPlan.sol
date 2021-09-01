@@ -142,7 +142,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     }
 
     function isAcceptableToken(address root, uint128 amount) public view returns (bool) {
-        return _prices.exists(root) && amount >= _prices[root];
+        return _prices.exists(root) && _prices[root] != 0 && amount >= _prices[root];
     }
 
     // called from service
