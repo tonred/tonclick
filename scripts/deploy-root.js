@@ -1,17 +1,17 @@
 const afterRun = async (tx) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
 };
 
 const deployAccount = async function (key, value) {
-    const Account = await locklift.factory.getAccount('Wallet');
-    let account = await locklift.giver.deployContract({
-        contract: Account,
-        constructorParams: {},
-        keyPair: key
-    }, locklift.utils.convertCrystal(value, 'nano'));
-    account.setKeyPair(key);
-    account.afterRun = afterRun;
-    return account;
+  const Account = await locklift.factory.getAccount('Wallet');
+  let account = await locklift.giver.deployContract({
+    contract: Account,
+    constructorParams: {},
+    keyPair: key
+  }, locklift.utils.convertCrystal(value, 'nano'));
+  account.setKeyPair(key);
+  account.afterRun = afterRun;
+  return account;
 }
 
 async function main() {
@@ -26,7 +26,7 @@ async function main() {
   const root = await locklift.giver.deployContract({
     contract: Root,
     constructorParams: {
-      owner,
+      owner: owner.address,
       serviceCode: Service.code,
       subscriptionPlanCode: SubscriptionPlan.code,
       userSubscriptionCode: UserSubscription.code,

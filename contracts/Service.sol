@@ -1,4 +1,7 @@
 pragma ton-solidity >= 0.47.0;
+pragma AbiHeader expire;
+pragma AbiHeader time;
+pragma AbiHeader pubkey;
 
 import "./SubscriptionPlan.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
@@ -81,6 +84,26 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      * GETTERS *
      ***********/
 
+    function getDetails() public view responsible returns (
+        address owner,
+        string title,
+        string description,
+        string url,
+        uint32 subscriptionPlanNonce,
+        address[] subscriptionPlans,
+        mapping(address => uint128) virtualBalances
+    ) {
+        return {value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (
+            _owner,
+            _title,
+            _description,
+            _url,
+            _subscriptionPlanNonce,
+            _subscriptionPlans,
+            _virtualBalances
+        );
+    }
+
     function getSubscriptionPlanNonce() public view responsible returns (uint32) {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionPlanNonce;
     }
@@ -113,7 +136,6 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
      ***********/
 
     function createSubscriptionPlan(
-        uint128 tonPrice,
         mapping(address => uint128) tip3Prices,
         string title,
         uint32 duration,
@@ -122,7 +144,6 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint64 limitCount
     ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
         _reserve(getTonBalance());
-        tip3Prices[ZERO_ADDRESS] = tonPrice;
         SubscriptionPlanData data = SubscriptionPlanData(title, duration, description, termUrl, limitCount);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
         IRootCreateSubscriptionPlan(_root)
@@ -242,7 +263,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
                 .onUserSubscription{
                     value: 2 * Balances.USER_PROFILE_BALANCE,  // for `constructor` and `addSubscription`
                     flag: MsgFlag.SENDER_PAYS_FEES
-                }(_nonce, userSubscription, sender, user, pubkey);
+                }(_nonce, msg.sender, sender, user, pubkey);
         }
         emit Subscripted(_subscriptionPlans[subscriptionPlanNonce], tip3Root, sender, user, pubkey, userSubscription);
         sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});

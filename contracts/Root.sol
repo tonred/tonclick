@@ -1,4 +1,7 @@
 pragma ton-solidity >= 0.47.0;
+pragma AbiHeader expire;
+pragma AbiHeader time;
+pragma AbiHeader pubkey;
 
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
@@ -86,6 +89,23 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (_feeNumerator, _feeDenominator);
     }
 
+    function expectedServiceAddress(uint32 nonce) public view responsible returns (address) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} address(tvm.hash(_buildServiceStateInit(nonce++)));
+    }
+
+    function getDetails() public view responsible returns (
+        TvmCell serviceCode,
+        TvmCell subscriptionPlanCode,
+        TvmCell userSubscriptionCode,
+        uint32 serviceNonce
+    ) {
+        return {value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (
+            _serviceCode,
+            _subscriptionPlanCode,
+            _userSubscriptionCode,
+            _serviceNonce
+        );
+    }
 
     /***********
      * METHODS *

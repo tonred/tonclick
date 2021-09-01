@@ -1,4 +1,7 @@
 pragma ton-solidity >= 0.39.0;
+pragma AbiHeader expire;
+pragma AbiHeader time;
+pragma AbiHeader pubkey;
 
 import "./interfaces/subscription_plan/ISubscriptionPlanCallbacks.sol";
 import "./libraries/Balances.sol";

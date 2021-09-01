@@ -82,8 +82,10 @@ class Environment:
         service = service or self.service
         tip3_root = self.tip3_helper.tip3_root.str()
         call_set = CallSet('createSubscriptionPlan', input={
-            'tonPrice': self.SUBSCRIPTION_PLAN_TON_PRICE,
-            'tip3Prices': {tip3_root: self.SUBSCRIPTION_PLAN_TIP3_PRICE},
+            'tip3Prices': {
+                tip3_root: self.SUBSCRIPTION_PLAN_TIP3_PRICE,
+                ts4.Address('0:' + '0'*64): self.SUBSCRIPTION_PLAN_TON_PRICE
+            },
             'title': self.SUBSCRIPTION_PLAN_TITLE,
             'duration': self.SUBSCRIPTION_PLAN_DURATION,
             'description': self.SUBSCRIPTION_PLAN_DESCRIPTION,

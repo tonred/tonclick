@@ -1,11 +1,12 @@
 pragma ton-solidity >=0.39.0;
 
 import "../tip3/RootTokenContract.sol";
+import "../../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
 
 
-contract TestTIP3Deployer {
-    uint128 DEFAULT_TIP3_ROOT_VALUE = 3 ton;
-    uint128 DEFAULT_TIP3_WALLET_VALUE = 1 ton;
+contract TestTIP3Deployer is RandomNonce {
+    uint128 DEFAULT_TIP3_ROOT_VALUE = 1 ton;
+    uint128 DEFAULT_TIP3_WALLET_VALUE = 0.5 ton;
 
     address _root;
     TvmCell _root_code;
@@ -22,7 +23,7 @@ contract TestTIP3Deployer {
         return _root;
     }
 
-    function deployRootTIP3() public {
+    function deployRootTIP3() public returns (address) {
         tvm.accept();
         TvmCell stateInit = tvm.buildStateInit({
             contr: RootTokenContract,
@@ -30,7 +31,8 @@ contract TestTIP3Deployer {
                 name: "TestToken",
                 symbol: "TEST",
                 decimals: 9,
-                wallet_code: _wallet_code
+                wallet_code: _wallet_code,
+                _randomNonce: now
             },
             code: _root_code
         });
@@ -38,6 +40,7 @@ contract TestTIP3Deployer {
             stateInit: stateInit,
             value: DEFAULT_TIP3_ROOT_VALUE
         }(0, address(this));
+        return _root;
     }
 
     function deployTIP3Wallet(address owner, uint128 initValue) public view returns (address) {
@@ -52,12 +55,9 @@ contract TestTIP3Deployer {
             },
             code: _wallet_code
         });
-        address tip_wallet = new TONTokenWallet{
-            stateInit: stateInit,
-            value: DEFAULT_TIP3_WALLET_VALUE
-        }();
-        RootTokenContract(_root).mint(initValue, tip_wallet);
-        return tip_wallet;
+        address wallet = address(tvm.hash(stateInit));
+        RootTokenContract(_root).deployWallet{value: 0.5 ton}(initValue, 0.1 ton, 0, owner, address(this));
+        return wallet;
     }
 
 }

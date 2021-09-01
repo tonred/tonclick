@@ -1,4 +1,7 @@
 pragma ton-solidity >= 0.39.0;
+pragma AbiHeader expire;
+pragma AbiHeader time;
+pragma AbiHeader pubkey;
 
 import "./UserSubscription.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
@@ -50,7 +53,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     }
 
     modifier onlyUserSubscription(address user, uint256 pubkey) {
-        address userSubscription = getUserSubscription(user, pubkey);
+        address userSubscription = getUserSubscription(user, pubkey, address(this));
         require(msg.sender == userSubscription, Errors.IS_NOT_USER_SUBSCRIPTION);
         _;
     }
@@ -89,11 +92,29 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _data;
     }
 
-    function getTonPrice() public view responsible returns (optional(uint128)) {
-        optional(uint128) tonPrice;
+    function getTonPrice() public view responsible returns (uint128) {
+        uint128 tonPrice;
         if (_prices.exists(ZERO_ADDRESS))
             tonPrice = _prices[ZERO_ADDRESS];
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} tonPrice;
+    }
+
+    function getDetails() public view responsible returns (
+        uint32 nonce,
+        address root,
+        address service,
+        mapping(address /*root*/ => uint128 /*price*/) prices,
+        uint64 totalUsersCount,
+        uint64 activeUsersCount
+    ) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (
+            _nonce,
+            _root,
+            _service,
+            _prices,
+            _totalUsersCount,
+            _activeUsersCount
+        );
     }
 
     function getTip3Prices() public view responsible returns (mapping(address /*root*/ => uint128 /*price*/)) {
@@ -194,7 +215,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         bool autoRenew,
         uint32 extendDuration
     ) private view returns (address) {
-        TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
+        TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey, address(this));
         UserSubscription userSubscription = new UserSubscription{
             stateInit: stateInit,
             value: Balances.USER_SUBSCRIPTION_BALANCE,
@@ -223,7 +244,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     function unsubscribe(TvmCell payload) minValue(Fees.USER_SUBSCRIPTION_CANCEL_VALUE) public view {
         _reserve(0);
         (address user, uint256 pubkey) = payload.toSlice().decodeFunctionParams(buildUnsubscribePayload);
-        address userSubscription = getUserSubscription(user, pubkey);
+        address userSubscription = getUserSubscription(user, pubkey, address(this));
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}(msg.sender);
     }
 
@@ -247,21 +268,21 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
-    function getUserSubscription(address user, uint256 pubkey) public view responsible returns (address) {
-        TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
+    function getUserSubscription(address user, uint256 pubkey, address root) public view responsible returns (address) {
+        TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey, root);
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _calcAddress(stateInit);
     }
 
     function getUserSubscriptionWithPayload(address user, uint256 pubkey, TvmCell payload) public view responsible returns (address, TvmCell) {
-        address userSubscription = getUserSubscription(user, pubkey);
+        address userSubscription = getUserSubscription(user, pubkey, address(this));
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} (userSubscription, payload);
     }
 
-    function _buildUserSubscriptionStateInit(address user, uint256 pubkey) private view returns (TvmCell) {
+    function _buildUserSubscriptionStateInit(address user, uint256 pubkey, address root) private view returns (TvmCell) {
         return tvm.buildStateInit({
             contr: UserSubscription,
             varInit: {
-                _subscriptionPlan: address(this),
+                _subscriptionPlan: root,
                 _user: user,
                 _pubkey: pubkey
             },
