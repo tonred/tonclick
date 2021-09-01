@@ -8,6 +8,7 @@ help:
 
 setup:
 	cp example.locklift.config.js locklift.config.js
+	npm install
 	npm install -g locklift
 
 compile:
