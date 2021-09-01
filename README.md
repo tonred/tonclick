@@ -12,8 +12,6 @@ DeBot for Service address in devnet: `0:3a4dfa2c931767f706b1a94a22699117bc8ea361
 
 DeBot for User address in devnet: `0:a8d4f71427003c3e75d5047003da399da2809450d7c783f5311d2837de324425`
 
-Push request: `todo`
-
 TG: @Abionics, @get_username
 
 Sample addresses for subscription in devnet:
