@@ -13,7 +13,7 @@ import "./utils/SafeGasExecution.sol";
 
 
 contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecution {
-    address ZERO_ADDRESS = address(0);
+    address ZERO_ADDRESS;
 
     uint32 static _nonce;
     address static _owner;
@@ -155,15 +155,14 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         bool autoRenew
     ) public view onlyService {
         _reserve(0);
-        bool success = false;
         uint128 changeAmount = amount;
+        address userSubscription;
         if (canSubscribe() && isAcceptableToken(tip3Root, amount)) {
             uint128 price = _prices[tip3Root];
             uint128 extendPeriods = amount / price;
             uint32 extendDuration = uint32(math.min(2 ** 32 - 1, extendPeriods * _data.duration));
-            _subscribe(sender, user, pubkey, autoRenew, extendDuration);
-            success = true;
             changeAmount = amount - extendPeriods * price;
+            userSubscription = _subscribe(sender, user, pubkey, autoRenew, extendDuration);
         }
         IServiceSubscribeCallback(_service)
             .subscribeCallback {
@@ -173,20 +172,29 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
                 _nonce,
                 tip3Root,
                 sender,
-                success,
-                changeAmount
+                user,
+                pubkey,
+                changeAmount,
+                userSubscription
             );
     }
 
-    function _subscribe(address sender, address user, uint256 pubkey, bool autoRenew, uint32 extendDuration) private view {
+    function _subscribe(
+        address sender,
+        address user,
+        uint256 pubkey,
+        bool autoRenew,
+        uint32 extendDuration
+    ) private view returns (address) {
         TvmCell stateInit = _buildUserSubscriptionStateInit(user, pubkey);
         UserSubscription userSubscription = new UserSubscription{
-            stateInit : stateInit,
-            value : Balances.USER_SUBSCRIPTION_BALANCE,
+            stateInit: stateInit,
+            value: Balances.USER_SUBSCRIPTION_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(autoRenew);
         userSubscription.extend{value: Balances.USER_SUBSCRIPTION_BALANCE, bounce: false}(sender, extendDuration, autoRenew);
+        return userSubscription;
     }
 
     // called from user subscription
@@ -210,6 +218,13 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}();
     }
 
+    function buildUnsubscribePayload(address user, uint256 pubkey) public pure returns (TvmCell) {
+        require(user == address(0) || pubkey == 0);
+        TvmBuilder builder;
+        builder.store(user, pubkey);
+        return builder.toCell();
+    }
+
     // called from user subscription
     function unsubscribeCallback(
         address user,
@@ -219,12 +234,6 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         if (isDeactivateAutoRenew) _activeUsersCount--;
         user.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
-    }
-
-    function buildUnsubscribePayload(address user, uint256 pubkey) public pure returns (TvmCell) {
-        TvmBuilder builder;
-        builder.store(user, pubkey);
-        return builder.toCell();
     }
 
     function getUserSubscription(address user, uint256 pubkey) public view responsible returns (address) {
@@ -241,11 +250,11 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         return tvm.buildStateInit({
             contr: UserSubscription,
             varInit: {
-                _subscriptionPlan : address(this),
-                _user : user,
+                _subscriptionPlan: address(this),
+                _user: user,
                 _pubkey: pubkey
             },
-            code : _userSubscriptionCode
+            code: _userSubscriptionCode
         });
     }
 

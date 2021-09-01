@@ -46,11 +46,13 @@ class Environment:
         service_code = ts4.load_code_cell(f'Service')
         subscription_plan_code = ts4.load_code_cell(f'SubscriptionPlan')
         user_subscription_code = ts4.load_code_cell(f'UserSubscription')
+        user_profile_code = ts4.load_code_cell(f'UserProfile')
         return Root({
             'owner': self.root_owner.ton_wallet.address,
             'serviceCode': service_code,
             'subscriptionPlanCode': subscription_plan_code,
             'userSubscriptionCode': user_subscription_code,
+            'userProfileCode': user_profile_code,
         })
 
     def _create_organization(self) -> ts4.BaseContract:

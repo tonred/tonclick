@@ -6,7 +6,9 @@ interface IServiceSubscribeCallback {
         uint32 subscriptionPlanNonce,
         address tip3Root,
         address sender,
-        bool success,
-        uint128 changeAmount
+        address user,
+        uint256 pubkey,
+        uint128 changeAmount,
+        address userSubscription
     ) external;
 }

@@ -2,6 +2,7 @@ pragma ton-solidity >= 0.47.0;
 
 import "./Service.sol";
 import "./SubscriptionPlan.sol";
+import "./UserProfile.sol";
 import "./structs/SubscriptionPlanData.sol";
 import "./libraries/Balances.sol";
 import "./libraries/Constants.sol";
@@ -10,6 +11,7 @@ import "./utils/MinValue.sol";
 import "./utils/SafeGasExecution.sol";
 import "./interfaces/root/ICreateServiceCallback.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
+import "./interfaces/root/IRootOnUserSubscription.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
 
 import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
@@ -17,7 +19,7 @@ import "../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
 import "../node_modules/@broxus/contracts/contracts/access/InternalOwner.sol";
 
 
-contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGasExecution, RandomNonce /*, InternalOwner*/ {
+contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWithdrawal, MinValue, SafeGasExecution, RandomNonce /*, InternalOwner*/ {
 
     address _owner;
     uint32 _serviceNonce;
@@ -28,6 +30,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
     TvmCell _serviceCode;
     TvmCell _subscriptionPlanCode;
     TvmCell _userSubscriptionCode;
+    TvmCell _userProfileCode;
 
 
     /*************
@@ -55,13 +58,15 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         address owner,
         TvmCell serviceCode,
         TvmCell subscriptionPlanCode,
-        TvmCell userSubscriptionCode
+        TvmCell userSubscriptionCode,
+        TvmCell userProfileCode
     ) public {
         tvm.accept();
         _owner = owner;
         _serviceCode = serviceCode;
         _subscriptionPlanCode = subscriptionPlanCode;
         _userSubscriptionCode = userSubscriptionCode;
+        _userProfileCode = userProfileCode;
         keepBalance(Balances.ROOT_BALANCE);
     }
 
@@ -87,8 +92,8 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
     ) public minValue(Fees.CREATE_SERVICE_VALUE) safeGasModifier {
         TvmCell stateInit = _buildServiceStateInit(_serviceNonce++);
         Service service = new Service {
-            stateInit : stateInit,
-            value : Balances.SERVICE_BALANCE,
+            stateInit: stateInit,
+            value: Balances.SERVICE_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(owner, title, description, url);
@@ -99,10 +104,10 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         return tvm.buildStateInit({
             contr: Service,
             varInit: {
-                _nonce : nonce,
+                _nonce: nonce,
                 _root: address(this)
             },
-            code : _serviceCode
+            code: _serviceCode
         });
     }
 
@@ -116,10 +121,10 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         mapping(address /*root*/ => uint128 /*price*/) prices
     ) public override onlyService(serviceNonce) {
         _reserve(0);
-        TvmCell subscriptionPlanStateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
+        TvmCell stateInit = _buildSubscriptionPlanStateInit(subscriptionPlanNonce, owner, service);
         SubscriptionPlan subscriptionPlan = new SubscriptionPlan {
-            stateInit : subscriptionPlanStateInit,
-            value : Balances.SUBSCRIPTION_PLAN_BALANCE,
+            stateInit: stateInit,
+            value: Balances.SUBSCRIPTION_PLAN_BALANCE,
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(data, prices, _userSubscriptionCode);
@@ -137,12 +142,47 @@ contract Root is IRootCreateSubscriptionPlan, IRootWithdrawal, MinValue, SafeGas
         return tvm.buildStateInit({
             contr: SubscriptionPlan,
             varInit: {
-                _nonce : nonce,
+                _nonce: nonce,
                 _owner: owner,
                 _root: address(this),
                 _service: service
             },
-            code : _subscriptionPlanCode
+            code: _subscriptionPlanCode
+        });
+    }
+
+    // called from service
+    function onUserSubscription(
+        uint32 serviceNonce,
+        address userSubscription,
+        address sender,
+        address user,
+        uint256 pubkey
+    ) public override onlyService(serviceNonce) {
+        TvmCell stateInit = _buildUserProfileStateInit(user, pubkey);
+        UserProfile userProfile = new UserProfile{
+            stateInit: stateInit,
+            value: Balances.USER_PROFILE_BALANCE,
+            flag: MsgFlag.SENDER_PAYS_FEES,
+            bounce: false
+        }();
+        userProfile.addSubscription{value: Balances.USER_PROFILE_BALANCE, bounce: false}(userSubscription, sender);
+    }
+
+    function getUserProfile(address user, uint256 pubkey) public view responsible returns (address) {
+        TvmCell stateInit = _buildUserProfileStateInit(user, pubkey);
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _calcAddress(stateInit);
+    }
+
+    function _buildUserProfileStateInit(address user, uint256 pubkey) private view returns (TvmCell) {
+        return tvm.buildStateInit({
+            contr: UserProfile,
+            varInit: {
+                _root: address(this),
+                _user: user,
+                _pubkey: pubkey
+            },
+            code: _userProfileCode
         });
     }
 

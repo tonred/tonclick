@@ -2,6 +2,7 @@ pragma ton-solidity >= 0.47.0;
 
 import "./SubscriptionPlan.sol";
 import "./interfaces/root/IRootCreateSubscriptionPlan.sol";
+import "./interfaces/root/IRootOnUserSubscription.sol";
 import "./interfaces/root/IRootWithdrawal.sol";
 import "./interfaces/service/IServiceAddTip3Wallets.sol";
 import "./interfaces/service/IServiceSubscribeCallback.sol";
@@ -17,7 +18,7 @@ import "../node_modules/@broxus/contracts/contracts/libraries/MsgFlag.sol";
 
 
 contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue, SafeGasExecution, ITIP3Manager {
-    address ZERO_ADDRESS = address(0);
+    address ZERO_ADDRESS;
 
     uint32 static _nonce;
     address static _root;
@@ -197,6 +198,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint256 pubkey,
         bool autoRenew
     ) public pure returns (TvmCell) {
+        require(user == address(0) || pubkey == 0);
         TvmBuilder builder;
         builder.store(subscriptionPlanNonce, user, pubkey, autoRenew);
         return builder.toCell();
@@ -206,8 +208,10 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint32 subscriptionPlanNonce,
         address tip3Root,
         address sender,
-        bool /*success*/,
-        uint128 changeAmount
+        address user,
+        uint256 pubkey,
+        uint128 changeAmount,
+        address userSubscription
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
         _reserve(0);
         _virtualBalances[tip3Root] -= changeAmount;
@@ -216,7 +220,14 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         } else {
             _transferTip3ToRecipient(tip3Root, sender, changeAmount);  // tip3
         }
-        sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+        if (userSubscription != ZERO_ADDRESS) {
+            IRootOnUserSubscription(_root)
+                .onUserSubscription{
+                    value: 2 * Balances.USER_PROFILE_BALANCE,  // for `constructor` and `addSubscription`
+                    flag: MsgFlag.SENDER_PAYS_FEES
+                }(_nonce, userSubscription, sender, user, pubkey);
+            sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+        }
     }
 
     function withdrawalTonIncome() public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {
