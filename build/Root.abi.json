@@ -1,0 +1,136 @@
+{
+	"ABI version": 2,
+	"header": ["pubkey", "time", "expire"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+				{"name":"owner","type":"address"},
+				{"name":"serviceCode","type":"cell"},
+				{"name":"subscriptionPlanCode","type":"cell"},
+				{"name":"userSubscriptionCode","type":"cell"},
+				{"name":"userProfileCode","type":"cell"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "getWithdrawalFee",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"uint128"},
+				{"name":"value1","type":"uint128"}
+			]
+		},
+		{
+			"name": "expectedServiceAddress",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"nonce","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"address"}
+			]
+		},
+		{
+			"name": "getDetails",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"serviceCode","type":"cell"},
+				{"name":"subscriptionPlanCode","type":"cell"},
+				{"name":"userSubscriptionCode","type":"cell"},
+				{"name":"serviceNonce","type":"uint32"}
+			]
+		},
+		{
+			"name": "createService",
+			"inputs": [
+				{"name":"owner","type":"address"},
+				{"name":"title","type":"bytes"},
+				{"name":"description","type":"bytes"},
+				{"name":"url","type":"bytes"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "createSubscriptionPlan",
+			"inputs": [
+				{"name":"serviceNonce","type":"uint32"},
+				{"name":"subscriptionPlanNonce","type":"uint32"},
+				{"name":"owner","type":"address"},
+				{"name":"service","type":"address"},
+				{"components":[{"name":"title","type":"bytes"},{"name":"duration","type":"uint32"},{"name":"description","type":"bytes"},{"name":"termUrl","type":"bytes"},{"name":"limitCount","type":"uint64"}],"name":"data","type":"tuple"},
+				{"name":"prices","type":"map(address,uint128)"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "onUserSubscription",
+			"inputs": [
+				{"name":"serviceNonce","type":"uint32"},
+				{"name":"userSubscription","type":"address"},
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "getUserProfile",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"}
+			],
+			"outputs": [
+				{"name":"value0","type":"address"}
+			]
+		},
+		{
+			"name": "setWithdrawalFee",
+			"inputs": [
+				{"name":"numerator","type":"uint128"},
+				{"name":"denominator","type":"uint128"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "getWithdrawalParams",
+			"inputs": [
+				{"name":"payload","type":"cell"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "_randomNonce",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"_randomNonce","type":"uint256"}
+			]
+		}
+	],
+	"data": [
+		{"key":1,"name":"_randomNonce","type":"uint256"}
+	],
+	"events": [
+		{
+			"name": "ServiceCreated",
+			"inputs": [
+				{"name":"service","type":"address"},
+				{"name":"owner","type":"address"}
+			],
+			"outputs": [
+			]
+		}
+	]
+}

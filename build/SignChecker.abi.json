@@ -1,0 +1,39 @@
+{
+	"ABI version": 2,
+	"header": ["time"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "checkSign",
+			"inputs": [
+				{"name":"signature","type":"bytes"},
+				{"name":"domain","type":"bytes"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"cid","type":"bytes"},
+				{"name":"sid","type":"bytes"}
+			],
+			"outputs": [
+				{"name":"value0","type":"bool"}
+			]
+		},
+		{
+			"name": "_randomNonce",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"_randomNonce","type":"uint256"}
+			]
+		}
+	],
+	"data": [
+		{"key":1,"name":"_randomNonce","type":"uint256"}
+	],
+	"events": [
+	]
+}

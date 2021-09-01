@@ -1,0 +1,239 @@
+{
+	"ABI version": 2,
+	"header": ["pubkey", "time", "expire"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+				{"components":[{"name":"title","type":"bytes"},{"name":"duration","type":"uint32"},{"name":"description","type":"bytes"},{"name":"termUrl","type":"bytes"},{"name":"limitCount","type":"uint64"}],"name":"data","type":"tuple"},
+				{"name":"prices","type":"map(address,uint128)"},
+				{"name":"userSubscriptionCode","type":"cell"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "getInfo",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"components":[{"name":"title","type":"bytes"},{"name":"duration","type":"uint32"},{"name":"description","type":"bytes"},{"name":"termUrl","type":"bytes"},{"name":"limitCount","type":"uint64"}],"name":"value0","type":"tuple"}
+			]
+		},
+		{
+			"name": "getTonPrice",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"uint128"}
+			]
+		},
+		{
+			"name": "getDetails",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"nonce","type":"uint32"},
+				{"name":"root","type":"address"},
+				{"name":"service","type":"address"},
+				{"name":"prices","type":"map(address,uint128)"},
+				{"name":"totalUsersCount","type":"uint64"},
+				{"name":"activeUsersCount","type":"uint64"}
+			]
+		},
+		{
+			"name": "getTip3Prices",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"map(address,uint128)"}
+			]
+		},
+		{
+			"name": "getTotalUsersCount",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"uint64"}
+			]
+		},
+		{
+			"name": "getActiveUsersCount",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"}
+			],
+			"outputs": [
+				{"name":"value0","type":"uint64"}
+			]
+		},
+		{
+			"name": "activate",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "deactivate",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "changeTonPrice",
+			"inputs": [
+				{"name":"price","type":"uint128"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "changeTip3Prices",
+			"inputs": [
+				{"name":"tip3Prices","type":"map(address,uint128)"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "addTip3WalletsCallback",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "canSubscribe",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"value0","type":"bool"}
+			]
+		},
+		{
+			"name": "isAcceptableToken",
+			"inputs": [
+				{"name":"root","type":"address"},
+				{"name":"amount","type":"uint128"}
+			],
+			"outputs": [
+				{"name":"value0","type":"bool"}
+			]
+		},
+		{
+			"name": "subscribe",
+			"inputs": [
+				{"name":"tip3Root","type":"address"},
+				{"name":"amount","type":"uint128"},
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"autoRenew","type":"bool"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "subscribeCallback",
+			"inputs": [
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"firstCallback","type":"bool"},
+				{"name":"isActivateAutoRenew","type":"bool"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "unsubscribe",
+			"inputs": [
+				{"name":"payload","type":"cell"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "buildUnsubscribePayload",
+			"inputs": [
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"}
+			],
+			"outputs": [
+				{"name":"value0","type":"cell"}
+			]
+		},
+		{
+			"name": "unsubscribeCallback",
+			"inputs": [
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"isDeactivateAutoRenew","type":"bool"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "getUserSubscription",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"root","type":"address"}
+			],
+			"outputs": [
+				{"name":"value0","type":"address"}
+			]
+		},
+		{
+			"name": "getUserSubscriptionWithPayload",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"payload","type":"cell"}
+			],
+			"outputs": [
+				{"name":"value0","type":"address"},
+				{"name":"value1","type":"cell"}
+			]
+		}
+	],
+	"data": [
+		{"key":1,"name":"_nonce","type":"uint32"},
+		{"key":2,"name":"_owner","type":"address"},
+		{"key":3,"name":"_root","type":"address"},
+		{"key":4,"name":"_service","type":"address"}
+	],
+	"events": [
+		{
+			"name": "Subscripted",
+			"inputs": [
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"userSubscription","type":"address"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "Unsubscripted",
+			"inputs": [
+				{"name":"sender","type":"address"},
+				{"name":"user","type":"address"},
+				{"name":"pubkey","type":"uint256"},
+				{"name":"userSubscription","type":"address"}
+			],
+			"outputs": [
+			]
+		}
+	]
+}
