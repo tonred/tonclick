@@ -38,8 +38,7 @@ abstract contract IOnchain {
         return false;
     }
 
-    // Call this method if you have subscription
-    function execute(address subscriptionPlan, TvmCell actionPayload) public view {
+    function _checkSubscription(address subscriptionPlan, TvmCell actionPayload) internal view {
         if (msg.value < _minValue) {
             IOnchainCallbacks(msg.sender).onchainFallback{value: 0, flag: MsgFlag.REMAINING_GAS}(Fallbacks.NOT_ENOUGH_TOKENS);
             return;
@@ -87,6 +86,7 @@ abstract contract IOnchain {
         }
     }
 
+    // this method is called after success checking, override it
     function _action(address user, TvmCell payload) internal virtual;
 
 

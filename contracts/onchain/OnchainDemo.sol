@@ -19,6 +19,10 @@ contract OnchainDemo is IOnchain {
         tvm.accept();
     }
 
+    function execute(address subscriptionPlan, TvmCell actionPayload, TvmCell /*someArgs...*/) public view {
+        _checkSubscription(subscriptionPlan, actionPayload);
+    }
+
     function _action(address user, TvmCell /*payload*/) internal override {
         tvm.accept();
         user.transfer({value: gift});  // just a sample

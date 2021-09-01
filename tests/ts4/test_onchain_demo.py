@@ -97,5 +97,6 @@ class TestOnchainWallet(Wallet):
         call_set = CallSet('execute', input={
             'subscriptionPlan': subscription_plan_address.addr_,
             'actionPayload': action_payload.raw_,
+            'value2': EMPTY_CELL.raw_,
         })
         self.send_call_set(onchain_demo, value=value, call_set=call_set)
