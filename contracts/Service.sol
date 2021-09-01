@@ -94,6 +94,10 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} balance;
     }
 
+    function getTonBalance() public view responsible returns (uint128) {
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} getOneBalance(ZERO_ADDRESS);
+    }
+
 
     /***********
      * METHODS *
@@ -108,7 +112,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         string termUrl,
         uint64 limitCount
     ) public onlyOwner minValue(Fees.CREATE_SUBSCRIPTION_PLAN_VALUE) {
-        _reserve(0);
+        _reserve(getTonBalance());
         tip3Prices[ZERO_ADDRESS] = tonPrice;
         SubscriptionPlanData data = SubscriptionPlanData(title, duration, description, termUrl, limitCount);
         uint32 subscriptionPlanNonce = _subscriptionPlanNonce++;
@@ -130,7 +134,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         address subscriptionPlan,
         mapping(address => uint128) prices
     ) public onlyRoot {
-        _reserve(0);
+        _reserve(getTonBalance());
         _deployTip3Wallets(prices);
         _subscriptionPlans.push(subscriptionPlan);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
@@ -148,13 +152,13 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     }
 
     function addTip3Wallets(uint32 subscriptionPlanNonce, mapping(address => uint128) tip3Prices) public override onlySubscriptionPlan(subscriptionPlanNonce) {
-        _reserve(0);
+        _reserve(getTonBalance());
         _deployTip3Wallets(tip3Prices);
         SubscriptionPlan(msg.sender).addTip3WalletsCallback{value: 0, flag: MsgFlag.ALL_NOT_RESERVED}();
     }
 
     function subscribeNativeTon(TvmCell payload) public minValue(Fees.USER_SUBSCRIPTION_EXTEND_VALUE) {
-        _reserve(0);
+        _reserve(getTonBalance());
         (uint32 subscriptionPlanNonce, address user, uint256 pubkey, bool autoRenew) = payload.toSlice()
             .decodeFunctionParams(buildSubscriptionPayload);
         require(subscriptionPlanNonce < _subscriptionPlanNonce, Errors.IS_NOT_SUBSCRIPTION_PLAN);
@@ -175,7 +179,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         address senderWallet,
         TvmCell payload
     ) internal override {
-        _reserve(0);
+        _reserve(getTonBalance());
         (uint32 subscriptionPlanNonce, address user, uint256 pubkey, bool autoRenew) = payload.toSlice()
             .decodeFunctionParams(buildSubscriptionPayload);
         if (msg.value < Fees.USER_SUBSCRIPTION_EXTEND_VALUE || subscriptionPlanNonce >= _subscriptionPlanNonce) {
@@ -213,7 +217,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint128 changeAmount,
         address userSubscription
     ) public override onlySubscriptionPlan(subscriptionPlanNonce) {
-        _reserve(0);
+        _reserve(getTonBalance());
         _virtualBalances[tip3Root] -= changeAmount;
         if (tip3Root == ZERO_ADDRESS) {
             sender.transfer({value: changeAmount, bounce: false});  // ton
@@ -235,7 +239,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     }
 
     function withdrawalTip3Income(address tip3Root) public view onlyOwner minValue(Fees.SERVICE_WITHDRAWAL_VALUE) {
-        _reserve(0);
+        _reserve(getTonBalance());
         uint128 amount = getOneBalance(tip3Root);
         require(amount > 0, Errors.SERVICE_ZERO_INCOME);
         TvmBuilder builder;
@@ -250,7 +254,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         address rootOwner,
         TvmCell payload
     ) public onlyRoot {
-        _reserve(0);
+        _reserve(getTonBalance());
         (address tip3Root, uint128 amount) = payload.toSlice().decode(address, uint128);
         if (_virtualBalances[tip3Root] < amount) {  // owner tries to make double transfer of income
             _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
