@@ -159,9 +159,9 @@ function withdrawalTip3Income(address tip3Root)
 
 ## Diagrams
 
-![deploy-service-diagram.png](docs/diagram-deploy-service.png)
-![deploy-plan-diagram.png](docs/diagram-deploy-plan.png)
-![subscribe-native-ton-diagram.png](docs/diagram-subscribe-native-ton.png)
+![diagram-deploy-service.png](docs/diagram-deploy-service.png)
+![diagram-deploy-subscription-plan.png](docs/diagram-deploy-subscription-plan.png)
+![diagram-subscribe-native-ton.png](docs/diagram-subscribe-native-ton.png)
 
 
 ## Tests
@@ -178,6 +178,7 @@ Test is written on python using `unittest` library
 
 
 ## Off-chain demo
+
 Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
 Off-chain demo site: https://demo.ton.click/
@@ -191,9 +192,9 @@ Off-chain demo site: https://demo.ton.click/
 6. Checks if user with such public key has active matching subscriptions
 5. Service grants JWT token to user via websockets, which will provide access to the private methods of service API 
 
-
 **Important:** for off-chain plans user subscriptions must be created only by user pubkey
 
+![off-chain-demo.png](docs/off-chain-demo.png)
 
 ## On-chain demo
 
