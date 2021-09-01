@@ -1,4 +1,4 @@
-pragma ton -solidity >=0.39.0;
+pragma ton-solidity >= 0.39.0;
 
 import "./Fallbacks.sol";
 import "./IOnchainCallbacks.sol";
@@ -23,6 +23,12 @@ abstract contract IOnchain {
     mapping(address /*userSubscription*/ => UserData) _waitingUsers;
 
 
+    /*
+    @param root                 root address
+    @param service              service address
+    @param subscriptionPlans    supported subscription plans of service
+    @param minValue             min value for checking subscription, recommend to use 1 ton
+    */
     constructor(address root, address service, address[] subscriptionPlans, uint128 minValue) public {
         tvm.accept();
         _root = root;
@@ -38,6 +44,12 @@ abstract contract IOnchain {
         return false;
     }
 
+    /*
+    Check if `msg.sender` in subscribed, then call `_action`
+    @param subscriptionPlan    address of subscription of `msg.sender`
+    @param actionPayload       payload that will be sent to `_action`
+    @value must more or equal to `_minValue`, otherwise fallback will be called
+    */
     function _checkSubscription(address subscriptionPlan, TvmCell actionPayload) internal view {
         if (msg.value < _minValue) {
             IOnchainCallbacks(msg.sender).onchainFallback{value: 0, flag: MsgFlag.REMAINING_GAS}(Fallbacks.NOT_ENOUGH_TOKENS);
@@ -86,7 +98,13 @@ abstract contract IOnchain {
         }
     }
 
-    // this method is called after success checking, override it
+    /*
+    This method is called after success checking, override it
+    @param user                 `msg.sender` address and user who have a subscription
+    @param payload              initial payloaf
+    @param subscriptionPlans    supported subscription plans of service
+    @param minValue             min value for checking subscription, recommend to use 1 ton
+    */
     function _action(address user, TvmCell payload) internal virtual;
 
 

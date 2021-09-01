@@ -1,4 +1,4 @@
-pragma ton-solidity >=0.39.0;
+pragma ton-solidity >= 0.39.0;
 
 import "../utils/Wallet.sol";
 import "../onchain/Fallbacks.sol";

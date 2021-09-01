@@ -1,5 +1,7 @@
 pragma ton-solidity >= 0.47.0;
+
 import "../node_modules/@broxus/contracts/contracts/utils/RandomNonce.sol";
+
 
 contract SignChecker is RandomNonce {
     constructor() public {
