@@ -27,7 +27,7 @@ Push request: `todo`
 ## Build and run
 
 ### Requirements:
-* [solc](https://github.com/tonlabs/TON-Solidity-Compiler) `0.48.0`
+* [solc](https://github.com/tonlabs/TON-Solidity-Compiler) `0.47.0` ([this commit](https://github.com/tonlabs/TON-Solidity-Compiler/commit/eb3b5023e7250316ab259a898bc778e1816b4ce9))
 * [tvm_linker](https://github.com/tonlabs/TVM-linker) `0.13.19`
 * python `>=3.8`
 * nodejs
