@@ -166,7 +166,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }();
-        userProfile.addSubscription{value: Balances.USER_PROFILE_BALANCE, bounce: false}(userSubscription, sender);
+        userProfile.addSubscription{value: Balances.USER_PROFILE_BALANCE, bounce: false}(userSubscription, msg.sender, sender);
     }
 
     function getUserProfile(address user, uint256 pubkey) public view responsible returns (address) {

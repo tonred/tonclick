@@ -100,6 +100,28 @@ class TestContacts(unittest.TestCase):
         self.assertEqual(self.subscription_plan.total_user_count, 1, 'Subscription must be calculated')
         self.assertEqual(self.subscription_plan.active_user_count, 1, 'Subscription must be auto renew')
 
+    def test_user_profile(self):
+        # create another  subscription plan
+        another_service_owner = self.environment.create_user()
+        another_service = self.environment.deploy_service(another_service_owner)
+        another_subscription_plan = self.environment.deploy_subscription_plan(another_service_owner, another_service)
+        another_value = self.environment.SUBSCRIPTION_PLAN_TIP3_PRICE
+
+        # subscribe on both subscription plans
+        user = self.environment.create_user()
+        user_subscription_1 = self._deploy_user_subscription(user)
+        user_subscription_2 = self.environment.deploy_user_subscription(
+            user, value=another_value, service=another_service, subscription_plan=another_subscription_plan
+        )
+
+        # assert values
+        user_profile = self.environment.get_user_profile(user)
+        print(user_profile.subscriptions)
+        print(user_profile.count_subscriptions)
+        self.assertEqual(user_profile.count_subscriptions, 2, 'Wrong count of user subscription')
+        expected_subscriptions = {user_subscription_1.address, user_subscription_2.address}
+        self.assertSetEqual(set(user_profile.subscriptions), expected_subscriptions, 'Wrong subscriptions')
+
     def test_set_withdrawal_fee(self):
         fees = (0, 100), (2, 100), (100, 100)
         for numerator, denominator in fees:

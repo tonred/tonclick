@@ -15,7 +15,7 @@ contract UserProfile is SafeGasExecution {
 
 
     uint32 _subscriptionsCount;
-    mapping(address /*user subscription*/ => bool) _subscriptions;
+    mapping(address /*user subscription*/ => address /*service*/) _subscriptions;
 
 
     /*************
@@ -54,8 +54,16 @@ contract UserProfile is SafeGasExecution {
         return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptionsCount;
     }
 
-    function getSubscriptions() public view responsible returns (mapping(address /*user subscription*/ => bool)) {
-        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} _subscriptions;
+    function getSubscriptions() public view responsible returns (address[]) {
+        address[] subscriptions;
+        optional(address, address) pair = _subscriptions.min();
+        while (pair.hasValue()) {
+            (address subscription, address service) = pair.get();
+            service;
+            subscriptions.push(subscription);
+            pair = _subscriptions.next(subscription);
+        }
+        return{value: 0, bounce: false, flag: MsgFlag.REMAINING_GAS} subscriptions;
     }
 
 
@@ -63,10 +71,10 @@ contract UserProfile is SafeGasExecution {
      * METHODS *
      ***********/
 
-    function addSubscription(address userSubscription, address sendGasTo) public onlyRoot {
+    function addSubscription(address userSubscription, address service, address sendGasTo) public onlyRoot {
         _reserve(0);
         if (!_subscriptions.exists(userSubscription)) {
-            _subscriptions[userSubscription] = true;
+            _subscriptions[userSubscription] = service;
             _subscriptionsCount++;
         }
         sendGasTo.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});

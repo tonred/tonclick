@@ -5,6 +5,7 @@ from config import BUILD_ARTIFACTS_PATH, VERBOSE
 from contracts.root import Root
 from contracts.service import Service
 from contracts.subscription_plan import SubscriptionPlan
+from contracts.user_profile import UserProfile
 from contracts.user_subscription import UserSubscription
 from utils.libraries import Fees
 from utils.tip3 import TIP3Helper
@@ -35,9 +36,9 @@ class Environment:
 
         self.organization = self._create_organization()
         self.service_owner = self.create_user()
-        self.service = self._deploy_service()
+        self.service = self.deploy_service()
 
-        self.subscription_plan = self._deploy_subscription_plan()
+        self.subscription_plan = self.deploy_subscription_plan()
 
     def create_user(self) -> User:
         return User(self.tip3_helper)
@@ -60,14 +61,15 @@ class Environment:
             'root': self.root.address,
         }, nickname='Organization', override_address=random_address())
 
-    def _deploy_service(self) -> Service:
+    def deploy_service(self, service_owner: User = None) -> Service:
+        service_owner = service_owner or self.service_owner
         call_set = CallSet('createService', input={
-            'owner': self.service_owner.ton_wallet.address.str(),
+            'owner': service_owner.ton_wallet.address.str(),
             'title': self.SERVICE_TITLE,
             'description': self.SERVICE_DESCRIPTION,
             'url': self.SERVICE_URL,
         })
-        self.service_owner.ton_wallet.send_call_set(
+        service_owner.ton_wallet.send_call_set(
             self.organization,
             value=0,
             call_set=call_set,
@@ -75,7 +77,9 @@ class Environment:
         address = self.organization.call_getter('getService')
         return Service(address)
 
-    def _deploy_subscription_plan(self) -> SubscriptionPlan:
+    def deploy_subscription_plan(self, service_owner: User = None, service: Service = None) -> SubscriptionPlan:
+        service_owner = service_owner or self.service_owner
+        service = service or self.service
         tip3_root = self.tip3_helper.tip3_root.str()
         call_set = CallSet('createSubscriptionPlan', input={
             'tonPrice': self.SUBSCRIPTION_PLAN_TON_PRICE,
@@ -86,24 +90,33 @@ class Environment:
             'termUrl': self.SUBSCRIPTION_PLAN_TERM_URL,
             'limitCount': self.SUBSCRIPTION_PLAN_LIMIT_COUNT,
         })
-        self.service_owner.ton_wallet.send_call_set(
-            self.service,
+        service_owner.ton_wallet.send_call_set(
+            service,
             value=Fees.CREATE_SUBSCRIPTION_PLAN_VALUE,
             call_set=call_set,
         )
-        subscription_plans = self.service.get_subscription_plans()
+        subscription_plans = service.get_subscription_plans()
         address = subscription_plans[0]
         return SubscriptionPlan(address)
 
-    def deploy_user_subscription(self, user: User, value: int, auto_renew: bool = True) -> UserSubscription:
-        payload = self.service.build_subscription_payload(
+    def deploy_user_subscription(
+            self,
+            user: User,
+            value: int,
+            auto_renew: bool = True,
+            service: Service = None,
+            subscription_plan: SubscriptionPlan = None,
+    ) -> UserSubscription:
+        service = service or self.service
+        subscription_plan = subscription_plan or self.subscription_plan
+        payload = service.build_subscription_payload(
             subscription_plan_nonce=0,
             user=user.ton_wallet.address,
             pubkey=0,
             auto_renew=auto_renew,
         )
-        user.transfer_tip3(self.service.address, value, Fees.USER_SUBSCRIPTION_EXTEND_VALUE, payload=payload)
-        address = self.subscription_plan.get_user_subscription(
+        user.transfer_tip3(service.address, value, Fees.USER_SUBSCRIPTION_EXTEND_VALUE, payload=payload)
+        address = subscription_plan.get_user_subscription(
             user=user.ton_wallet.address,
             pubkey=0,
         )
@@ -124,3 +137,11 @@ class Environment:
             pubkey=0,
         )
         return UserSubscription(address)
+
+    def get_user_profile(self, user: User) -> UserProfile:
+        address = self.root.call_getter('getUserProfile', {
+            'user': user.ton_wallet.address,
+            'pubkey': 0,
+            'answerId': 0,
+        })
+        return UserProfile(address)
