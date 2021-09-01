@@ -3,13 +3,13 @@
 node_modules/
 venv/
 
-build-artifacts/*.tvc
-build-artifacts/*.js
-build-artifacts/*.sh
-build-artifacts/*.result
-build-artifacts/*.code
-build-artifacts/*.base64
-build-artifacts/Test*.abi.json
+build/*.tvc
+build/*.js
+build/*.sh
+build/*.result
+build/*.code
+build/*.base64
+build/Test*.abi.json
 
 package-lock.json
 
