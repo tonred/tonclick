@@ -207,5 +207,13 @@ that give 10 tokens to everyone who has a subscription
 
 
 ## Debots
+### TonClick for Services Debot
+DeBot allows creating and managing service accounts
+* Deploy new Service Account
+* Deploy new Subscription Plan with list of prices TIP3 tokens and native TON
+* Edit and deactivate Service subscription plans
+### TonClick for Users Debot
+* Subscribe to plans 
+* Manage active subscriptions 
+* Login to off-chain services via public key 
 
-# **todo**
