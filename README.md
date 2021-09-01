@@ -1,6 +1,6 @@
-# Free TON online Auctions
+# Free TON subscriptions
 
-Project Github: https://github.com/tonred/auction
+Project Github: https://github.com/tonred/tonclick
 
 Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
