@@ -14,6 +14,11 @@ DeBot for User address in devnet: `0:a8d4f71427003c3e75d5047003da399da2809450d7c
 
 Push request: `todo`
 
+TG: @Abionics, @get_username
+
+Sample addresses for subscription in devnet:
+* 0:cdc57c70548720a965c09415192c1bfed6d3a29dc7641f17ca7392196882c457
+* 0:8c54901b4bf87e835a2da920c8f4a5995bf82ab380e96bf9d7b952dba6d63180
 
 ## Key features:
 * On-chain and off-chain subscriptions
@@ -185,7 +190,7 @@ Off-chain demo site: https://demo.ton.click/
 
 ### Workflow:
 1. Service generates a random temporary key and passes it to the user via WebSockets 
-2. User input this value in Surf DeBot(QR code or manually)
+2. User input this value in Surf DeBot (QR code or manually)
 3. DeBot shows user domain of the Service he is trying to access and asks to sign payload with his private key. Payload contains user public key, Service domain, and temp key from backend 
 4. After payload signing, hash of payload and user public key sends to Service vai https request.
 5. Service check signature with pubkey
@@ -207,13 +212,18 @@ that give 10 tokens to everyone who has a subscription
 
 
 ## Debots
+
 ### TonClick for Services Debot
 DeBot allows creating and managing service accounts
 * Deploy new Service Account
 * Deploy new Subscription Plan with list of prices TIP3 tokens and native TON
 * Edit and deactivate Service subscription plans
+
+![debot-services.png](docs/debot-services.png)
+
 ### TonClick for Users Debot
 * Subscribe to plans 
 * Manage active subscriptions 
 * Login to off-chain services via public key 
 
+![debot-users.png](docs/debot-users.png)
