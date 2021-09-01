@@ -109,17 +109,15 @@ class TestContacts(unittest.TestCase):
 
         # subscribe on both subscription plans
         user = self.environment.create_user()
-        user_subscription_1 = self._deploy_user_subscription(user)
-        user_subscription_2 = self.environment.deploy_user_subscription(
+        self._deploy_user_subscription(user)
+        self.environment.deploy_user_subscription(
             user, value=another_value, service=another_service, subscription_plan=another_subscription_plan
         )
 
         # assert values
         user_profile = self.environment.get_user_profile(user)
-        print(user_profile.subscriptions)
-        print(user_profile.count_subscriptions)
         self.assertEqual(user_profile.count_subscriptions, 2, 'Wrong count of user subscription')
-        expected_subscriptions = {user_subscription_1.address, user_subscription_2.address}
+        expected_subscriptions = {self.subscription_plan.address, another_subscription_plan.address}
         self.assertSetEqual(set(user_profile.subscriptions), expected_subscriptions, 'Wrong subscriptions')
 
     def test_set_withdrawal_fee(self):
