@@ -8,9 +8,9 @@ Off-chain demo site: https://demo.ton.click/static/
 
 Root address in devnet: `todo`
 
-DeBot Service address in devnet: `todo`
+DeBot for Service address in devnet: `todo`
 
-DeBot User address in devnet: `todo`
+DeBot for Users address in devnet: `todo`
 
 Push request: `todo`
 
@@ -20,8 +20,8 @@ Push request: `todo`
 * Many subscription plans for each services
 * Custom configuration of each subscription plan
 * Infinity amount of services and users, no mapping
-* On-chain interface and demo how to use it
-* Off-chain website demo
+* On-chain and off-chain demos
+* Native Ton and TIP3 tokens support
 
 
 ## Build and run
@@ -75,7 +75,7 @@ Also, this should be used if user want to see all his subscription via user prof
 ## Usage
 
 Infinity amount of services can be deployed from root contract.
-To deploy new service use `createService` method in root.
+To deploy new service use `createService` method in root
 
 ```solidity
 function createService(
@@ -87,7 +87,7 @@ function createService(
 ```
 
 Each service can create many subscription plans.
-To deploy new subscription plans use `createService` method in service.
+To deploy new subscription plans use `createSubscriptionPlan` method in service.
 Subscription plan can have max count of subscribers
 
 ```solidity
@@ -105,7 +105,7 @@ function createSubscriptionPlan(
 User can easily subscribe or extend subscription plan.
 He must not remember if subscription already exists.
 If user want to subscribe, he should create a `payload` in service
-via `buildSubscriptionPayload` function, and then pass this payload
+via `buildSubscriptionPayload` function, and then pass this `payload`
 depends on payment method.
 
 **Pass only `user` or `pubkey` value** [see more here](#on-chain-and-off-chain-usage),
@@ -175,13 +175,14 @@ make tests
 There are two test files: for contracts and for on-chain demo.
 Test is written on python using `unittest` library
 
-![tests-contracts.png](docs/tests-contracts.png)
-![tests-onchain.png](docs/tests-onchain.png)
+![tests-all.png](docs/tests-all.png)
 
 
 ## Off-chain demo
 
 # **todo**
+
+**Important:** for off-chain plans user subscriptions must be created by user pubkey
 
 
 ## On-chain demo
@@ -190,6 +191,8 @@ Everyone can easily integrate on-chain service with subscriptions.
 To do this, your contract should implement [IOnchain.sol](contracts/onchain/IOnchain.sol) class.
 There is a [demo](contracts/onchain/OnchainDemo.sol) of such service,
 that give 10 tokens to everyone who has a subscription
+
+**Important:** for on-chain plans user subscriptions must be created by user address
 
 
 ## Debots
