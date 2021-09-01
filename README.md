@@ -6,11 +6,13 @@ Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
 Off-chain demo site: https://demo.ton.click/static/
 
-Root address in devnet: `-`
+Root address in devnet: `todo`
 
-DeBot Service address in devnet: `-`
+DeBot Service address in devnet: `todo`
 
-DeBot User address in devnet: `-`
+DeBot User address in devnet: `todo`
+
+Push request: `todo`
 
 
 ## Key features:
@@ -158,6 +160,38 @@ function withdrawalTip3Income(address tip3Root)
 
 ## Diagrams
 
-![deploy-service-diagram.png](docs/deploy-service-diagram.png)
-![deploy-plan-diagram.png](docs/deploy-plan-diagram.png)
-![subscribe-native-ton-diagram.png](docs/subscribe-native-ton-diagram.png)
+![deploy-service-diagram.png](docs/diagram-deploy-service.png)
+![deploy-plan-diagram.png](docs/diagram-deploy-plan.png)
+![subscribe-native-ton-diagram.png](docs/diagram-subscribe-native-ton.png)
+
+
+## Tests
+
+To run tests use:
+```shell
+make tests
+```
+
+There are two test files: for contracts and for on-chain demo.
+Test is written on python using `unittest` library
+
+![tests-contracts.png](docs/tests-contracts.png)
+![tests-onchain.png](docs/tests-onchain.png)
+
+
+## Off-chain demo
+
+# **todo**
+
+
+## On-chain demo
+
+Everyone can easily integrate on-chain service with subscriptions.
+To do this, your contract should implement [IOnchain.sol](contracts/onchain/IOnchain.sol) class.
+There is a [demo](contracts/onchain/OnchainDemo.sol) of such service,
+that give 10 tokens to everyone who has a subscription
+
+
+## Debots
+
+# **todo**
