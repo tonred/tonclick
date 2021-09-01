@@ -182,7 +182,8 @@ Test is written on python using `unittest` library
 Off-chain demo Github: https://github.com/tonred/tonclick-demo
 
 Off-chain demo site: https://demo.ton.click/
-###Workflow:
+
+### Workflow:
 1. Service generates a random temporary key and passes it to the user via WebSockets 
 2. User input this value in Surf DeBot(QR code or manually)
 3. DeBot shows user domain of the Service he is trying to access and asks to sign payload with his private key. Payload contains user public key, Service domain, and temp key from backend 
