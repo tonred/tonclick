@@ -56,6 +56,14 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
     }
 
 
+    /**********
+     * EVENTS *
+     **********/
+
+    event Subscripted(address sender, address user, uint256 pubkey, address userSubscription);
+    event Unsubscripted(address sender, address user, uint256 pubkey, address userSubscription);
+
+
     /***************
      * CONSTRUCTOR *
      ***************/
@@ -208,6 +216,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         if (firstCallback) _totalUsersCount++;
         if (isActivateAutoRenew) _activeUsersCount++;
+        emit Subscripted(sender, user, pubkey, msg.sender);
         sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
@@ -215,7 +224,7 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
         _reserve(0);
         (address user, uint256 pubkey) = payload.toSlice().decodeFunctionParams(buildUnsubscribePayload);
         address userSubscription = getUserSubscription(user, pubkey);
-        UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}();
+        UserSubscription(userSubscription).cancel{value: Balances.USER_SUBSCRIPTION_BALANCE}(msg.sender);
     }
 
     function buildUnsubscribePayload(address user, uint256 pubkey) public pure returns (TvmCell) {
@@ -227,13 +236,15 @@ contract SubscriptionPlan is ISubscriptionPlanCallbacks, MinValue, SafeGasExecut
 
     // called from user subscription
     function unsubscribeCallback(
+        address sender,
         address user,
         uint256 pubkey,
         bool isDeactivateAutoRenew
     ) public override onlyUserSubscription(user, pubkey) {
         _reserve(0);
         if (isDeactivateAutoRenew) _activeUsersCount--;
-        user.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
+        emit Unsubscripted(sender, user, pubkey, msg.sender);
+        sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
     function getUserSubscription(address user, uint256 pubkey) public view responsible returns (address) {

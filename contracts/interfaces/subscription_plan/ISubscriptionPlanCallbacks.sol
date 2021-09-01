@@ -12,6 +12,7 @@ interface ISubscriptionPlanCallbacks {
     ) external;
 
     function unsubscribeCallback(
+        address sender,
         address user,
         uint256 pubkey,
         bool isDeactivateAutoRenew

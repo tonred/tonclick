@@ -50,6 +50,13 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
     }
 
 
+    /**********
+     * EVENTS *
+     **********/
+
+    event ServiceCreated(address service, address owner);
+
+
     /***************
      * CONSTRUCTOR *
      ***************/
@@ -97,6 +104,7 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
             flag: MsgFlag.SENDER_PAYS_FEES,
             bounce: false
         }(owner, title, description, url);
+        emit ServiceCreated(service, owner);
         ICreateServiceCallback(msg.sender).createServiceCallback(service);
     }
 
@@ -134,7 +142,8 @@ contract Root is IRootCreateSubscriptionPlan, IRootOnUserSubscription, IRootWith
                 flag: MsgFlag.ALL_NOT_RESERVED
             }(
                 address(subscriptionPlan),
-                prices
+                prices,
+                data.duration
             );
     }
 

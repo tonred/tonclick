@@ -55,6 +55,15 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
     }
 
 
+    /**********
+     * EVENTS *
+     **********/
+
+    event SubscriptionPlanCreated(address subscriptionPlan, uint32 duration);
+    event Subscripted(address subscriptionPlan, address tip3Root, address sender, address user, uint256 pubkey, address userSubscription);
+    event Withdrawal(address tip3Root, uint128 feeAmount, uint128 incomeAmount);
+
+
     /***************
      * CONSTRUCTOR *
      ***************/
@@ -132,11 +141,13 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
 
     function onSubscriptionPlanCreated(
         address subscriptionPlan,
-        mapping(address => uint128) prices
+        mapping(address => uint128) prices,
+        uint32 duration
     ) public onlyRoot {
         _reserve(getTonBalance());
         _deployTip3Wallets(prices);
         _subscriptionPlans.push(subscriptionPlan);
+        emit SubscriptionPlanCreated(subscriptionPlan, duration);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
     }
 
@@ -233,6 +244,7 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
                     flag: MsgFlag.SENDER_PAYS_FEES
                 }(_nonce, userSubscription, sender, user, pubkey);
         }
+        emit Subscripted(_subscriptionPlans[subscriptionPlanNonce], tip3Root, sender, user, pubkey, userSubscription);
         sender.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED});
     }
 
@@ -265,13 +277,14 @@ contract Service is IServiceAddTip3Wallets, IServiceSubscribeCallback, MinValue,
         uint128 feeAmount = math.muldiv(amount, numerator, denominator);
         uint128 incomeAmount = amount - feeAmount;
         if (tip3Root == ZERO_ADDRESS) {  // withdrawal ton
-            rootOwner.transfer({value: feeAmount, bounce: false});
-            _owner.transfer({value: incomeAmount, bounce: false});
+            if (feeAmount > 0) rootOwner.transfer({value: feeAmount, bounce: false});
+            if (incomeAmount > 0) _owner.transfer({value: incomeAmount, bounce: false});
         } else {  // withdrawal tip3
             _transferTip3ToRecipient(tip3Root, rootOwner, feeAmount);
             _transferTip3ToRecipient(tip3Root, _owner, incomeAmount);
         }
         _virtualBalances[tip3Root] -= amount;
+        emit Withdrawal(tip3Root, feeAmount, incomeAmount);
         _owner.transfer({value: 0, flag: MsgFlag.ALL_NOT_RESERVED, bounce: false});
     }
 

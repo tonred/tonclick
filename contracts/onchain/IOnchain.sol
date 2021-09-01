@@ -96,7 +96,7 @@ abstract contract IOnchain {
             UserData userData = _waitingUsers[msg.sender];
             delete _waitingUsers[msg.sender];
             IOnchainCallbacks(userData.user).onchainFallback{value: 0, flag: MsgFlag.REMAINING_GAS}(Fallbacks.SUBSCRIPTION_IS_NOT_EXISTS);
-            }
+        }
     }
 
 }

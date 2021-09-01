@@ -96,7 +96,7 @@ contract UserSubscription is SafeGasExecution {
         }
     }
 
-    function cancel() public onlySubscriptionPlan {
+    function cancel(address sender) public onlySubscriptionPlan {
         _reserve(0);
         bool isDeactivateAutoRenew = _autoRenew;
         _autoRenew = false;
@@ -105,6 +105,7 @@ contract UserSubscription is SafeGasExecution {
                 value: 0,
                 flag: MsgFlag.ALL_NOT_RESERVED
             }(
+                sender,
                 _user,
                 _pubkey,
                 isDeactivateAutoRenew
