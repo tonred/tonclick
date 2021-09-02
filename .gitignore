@@ -9,7 +9,6 @@ build/*.sh
 build/*.result
 build/*.code
 build/*.base64
-build/Test*.abi.json
 
 package-lock.json
 
